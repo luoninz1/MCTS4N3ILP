@@ -18,6 +18,7 @@ def get_base_config():
         'figure_dir': None,  # Will be set per test
         'tree_visualization': False,
         'pause_at_each_step': False,
+        'value_function': 'point_count',  # Default reward function
     }
 
 
@@ -175,6 +176,31 @@ def get_mcgs_config(n, random_seed=0, num_searches_multiplier=100, gamma=0.99):
     config.update({
         'algorithm': 'MCGS',
         'gamma': gamma,
+    })
+    return config
+
+
+def get_mcts_with_custom_reward_config(n, random_seed=0, num_searches_multiplier=100, value_function='point_count'):
+    """
+    Get MCTS configuration with custom reward/value function.
+
+    Args:
+        n (int): Grid size
+        random_seed (int): Random seed for reproducibility
+        num_searches_multiplier (int): Multiplier for number of searches
+        value_function (str): Name of value function to use
+            Options: 'point_count', 'point_count_squared', 'point_count_log'
+
+    Returns:
+        dict: MCTS configuration with custom value function
+
+    Example:
+        # Use quadratic reward (encourages higher scores)
+        config = get_mcts_with_custom_reward_config(10, value_function='point_count_squared')
+    """
+    config = get_mcts_config(n, random_seed, num_searches_multiplier)
+    config.update({
+        'value_function': value_function,
     })
     return config
 

@@ -1,15 +1,20 @@
 import numpy as np
 from numba import njit
-from src.envs.n3il.rewards import get_value_nb
 from src.algos.mcts.utils import get_valid_moves_nb, get_valid_moves_subset_nb, filter_top_priority_moves
+from src.rewards import point_count_value  # Centralized default value function
 
 
 @njit(cache=True, nogil=True)
-def simulate_nb(state, row_count, column_count, pts_upper_bound):
+def _simulate_nb_core(state, row_count, column_count):
     """
     Perform random rollout until no valid moves remain.
-    Return normalized value using a custom value function.
-    Uses get_valid_moves_subset_nb for incremental validity updates.
+    Returns the final state (simulation core without value calculation).
+
+    Args:
+        state: Current board state (will be modified during simulation)
+        row_count: Number of rows
+        column_count: Number of columns
+
     Note: This function uses numba's random number generator which is seeded globally.
     """
     max_size = row_count * column_count
@@ -43,24 +48,48 @@ def simulate_nb(state, row_count, column_count, pts_upper_bound):
 
         total_valid = np.sum(valid_moves)
 
-    # Compute and return the final value
-    return get_value_nb(state, pts_upper_bound)
+    return state
+
+
+def simulate_nb(state, row_count, column_count, pts_upper_bound, value_fn=None):
+    """
+    Wrapper for simulation that applies value function.
+
+    Args:
+        state: Current board state
+        row_count: Number of rows
+        column_count: Number of columns
+        pts_upper_bound: Upper bound for normalization
+        value_fn: Optional value function (defaults to point_count_value)
+
+    Returns:
+        float: Normalized value
+    """
+    # Run numba-compiled simulation
+    final_state = _simulate_nb_core(state, row_count, column_count)
+
+    # Apply value function (outside numba)
+    if value_fn is None:
+        return point_count_value(final_state, pts_upper_bound)
+    else:
+        return value_fn(final_state, pts_upper_bound)
 
 
 @njit(cache=True, nogil=True)
-def simulate_with_priority_nb(state, row_count, column_count, pts_upper_bound, priority_grid, top_N):
+def _simulate_with_priority_nb_core(state, row_count, column_count, priority_grid, top_N):
     """
-    Perform a random rollout that first filters valid moves by priority
-    and then proceeds like simulate_nb, but initial valid moves are pre-filtered.
+    Perform a random rollout that first filters valid moves by priority.
+    Returns the final state.
+
     Args:
         state (np.ndarray): 2D board state.
         row_count (int): Number of rows.
         column_count (int): Number of columns.
-        pts_upper_bound (int): Scoring upper bound.
         priority_grid (np.ndarray): 2D array of priorities.
         top_N (int): Number of top priority levels to keep.
+
     Returns:
-        float: Normalized final value.
+        np.ndarray: Final state after simulation
     """
     max_size = row_count * column_count
 
@@ -95,7 +124,33 @@ def simulate_with_priority_nb(state, row_count, column_count, pts_upper_bound, p
         )
         total_valid = np.sum(valid_moves)
 
-    return get_value_nb(state, pts_upper_bound)
+    return state
+
+
+def simulate_with_priority_nb(state, row_count, column_count, pts_upper_bound, priority_grid, top_N, value_fn=None):
+    """
+    Wrapper for priority-based simulation that applies value function.
+
+    Args:
+        state (np.ndarray): 2D board state.
+        row_count (int): Number of rows.
+        column_count (int): Number of columns.
+        pts_upper_bound (int): Scoring upper bound.
+        priority_grid (np.ndarray): 2D array of priorities.
+        top_N (int): Number of top priority levels to keep.
+        value_fn: Optional value function (defaults to point_count_value)
+
+    Returns:
+        float: Normalized final value.
+    """
+    # Run numba-compiled simulation
+    final_state = _simulate_with_priority_nb_core(state, row_count, column_count, priority_grid, top_N)
+
+    # Apply value function (outside numba)
+    if value_fn is None:
+        return point_count_value(final_state, pts_upper_bound)
+    else:
+        return value_fn(final_state, pts_upper_bound)
 
 
 def _rollout_many(child, R: int):

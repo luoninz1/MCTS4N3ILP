@@ -122,18 +122,23 @@ class Node:
 
     def simulate(self):
         tmp = self.state.copy()
+        # Get value function from environment if available
+        value_fn = getattr(self.game, 'value_fn', None)
+
         if self.args["simulate_with_priority"] == True:
             return simulate_with_priority_nb(tmp,
                                             self.game.row_count,
                                             self.game.column_count,
                                             self.game.pts_upper_bound,
                                             self.game.priority_grid,
-                                            self.args['TopN'])
+                                            self.args['TopN'],
+                                            value_fn)
         else:
             return simulate_nb(tmp,
                             self.game.row_count,
                             self.game.column_count,
-                            self.game.pts_upper_bound)
+                            self.game.pts_upper_bound,
+                            value_fn)
 
     def backpropagate(self, value):
         with self.lock:
@@ -313,18 +318,23 @@ class Node_Compressed:
     def simulate(self):
         # Unpack to 2D array; simulation mutates a copy
         tmp = self.state.copy()
+        # Get value function from environment if available
+        value_fn = getattr(self.game, 'value_fn', None)
+
         if self.args.get("simulate_with_priority", False):
             return simulate_with_priority_nb(tmp,
                                             self.game.row_count,
                                             self.game.column_count,
                                             self.game.pts_upper_bound,
                                             self.game.priority_grid,
-                                            self.args['TopN'])
+                                            self.args['TopN'],
+                                            value_fn)
         else:
             return simulate_nb(tmp,
                             self.game.row_count,
                             self.game.column_count,
-                            self.game.pts_upper_bound)
+                            self.game.pts_upper_bound,
+                            value_fn)
 
     def backpropagate(self, value):
         with self.lock:

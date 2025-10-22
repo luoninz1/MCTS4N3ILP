@@ -13,7 +13,9 @@ from collections import Counter
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.algos.mcts import evaluate, MCTS
+# New import from experiment module (backward compatible import also works)
+from src.experiment import ExperimentRunner, run_experiment
+from src.algos.mcts import MCTS  # For clearing global data
 from tests.test_modular_mcts.config import (
     get_mcts_config,
     get_mcts_with_symmetry_config,
@@ -34,7 +36,11 @@ def run_single_experiment(config):
     Returns:
         int: Number of points achieved
     """
-    return evaluate(config)
+    # New way: use ExperimentRunner or run_experiment
+    # Both approaches work:
+    # return run_experiment(config)  # Functional approach
+    runner = ExperimentRunner(config)
+    return runner.run()  # Object-oriented approach
 
 
 def run_experiment_suite(n_list, config_func, test_name, repeat=1):
@@ -111,7 +117,7 @@ def main():
         description="Run modular MCTS tests for No-Three-In-Line problem"
     )
     parser.add_argument(
-        "--start", type=int, default=3,
+        "--start", type=int, default=10,
         help="Starting grid size (inclusive)"
     )
     parser.add_argument(

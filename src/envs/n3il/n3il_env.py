@@ -9,7 +9,7 @@ import numpy as np
 import random
 import datetime
 from src.algos.mcts.utils import get_valid_moves_nb, get_valid_moves_subset_nb, filter_top_priority_moves
-from src.envs.n3il.rewards import get_value_nb
+from src.rewards import get_value_function, get_value_nb  # Centralized rewards
 from src.envs.n3il.visualization import display_state
 from src.envs.n3il.logging import record_to_table
 
@@ -37,6 +37,19 @@ class N3il:
 
         # Set max_level_to_use_symmetry with default value
         self.max_level_to_use_symmetry = args.get('max_level_to_use_symmetry', 0)
+
+        # Set value function for simulation (configurable via args)
+        # Can be specified as a string name or a callable function
+        value_fn_spec = args.get('value_function', 'point_count')
+        if isinstance(value_fn_spec, str):
+            # String name - look up from registry
+            self.value_fn = get_value_function(value_fn_spec)
+        elif callable(value_fn_spec):
+            # Directly provided function
+            self.value_fn = value_fn_spec
+        else:
+            # Default fallback
+            self.value_fn = get_value_nb
 
         # Create session name with timestamp and grid size
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
