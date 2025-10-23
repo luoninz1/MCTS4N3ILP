@@ -35,7 +35,7 @@ class MCTS:
         else:
             root = Node(self.game, self.args, state)
 
-        if self.args['process_bar'] == True:
+        if self.args.get('process_bar', False) == True:
             search_iterator = trange(self.args['num_searches'])
         else:
             search_iterator = range(self.args['num_searches'])
@@ -136,7 +136,7 @@ class ParallelMCTS(MCTS):
                 np.random.seed(worker_seed)
                 random.seed(worker_seed)
 
-            if self.args['process_bar'] == True:
+            if self.args.get('process_bar', False) == True:
                 for worker_iter in trange(n_sims):
                     self._search_once(root, worker_iter)
             else:
