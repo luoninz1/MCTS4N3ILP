@@ -26,7 +26,7 @@ import os
 import csv
 import pandas as pd
 
-from src.envs.n3il.rewards import get_value_nb
+from src.rewards.n3il_rewards import get_value_nb
 
 def count_idle_cpus(threshold: float = 10.0) -> int:
     """

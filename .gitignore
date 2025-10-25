@@ -194,3 +194,6 @@ Thumbs.db
 # Uncomment if you want to ignore specific experiment outputs
 # experiment_results.csv
 # session_*.txt
+
+# Planning docs (kept local, not versioned)
+docs/refactor_plan.md
