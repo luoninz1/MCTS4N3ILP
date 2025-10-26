@@ -923,7 +923,20 @@ class N3il:
 
         value = get_value_nb(state, self.pts_upper_bound)
         return value, True
-    
+
+    def simulate(self, state):
+        """
+        Perform a rollout from the given state until terminal.
+        Delegates to simulate_nb kernel. State is mutated in place.
+
+        Args:
+            state: 2D numpy array (will be mutated during rollout)
+
+        Returns:
+            float: Final normalized value
+        """
+        return simulate_nb(state, self.row_count, self.column_count, self.pts_upper_bound)
+
     def get_encoded_state(self, state):
         encoded_state = np.stack(
             (state == 0, state == 1)

@@ -484,19 +484,13 @@ class Node:
         return child
 
     def simulate(self):
+        """
+        Perform rollout simulation from this node's state.
+        Delegates to environment's simulate method.
+        """
         tmp = self.state.copy()
-        if self.args["simulate_with_priority"] == True:
-            return simulate_with_priority_nb(tmp,
-                                            self.game.row_count,
-                                            self.game.column_count,
-                                            self.game.pts_upper_bound,
-                                            self.game.priority_grid,
-                                            self.args['TopN'])
-        else:
-            return simulate_nb(tmp,
-                            self.game.row_count,
-                            self.game.column_count,
-                            self.game.pts_upper_bound)
+        # Delegate to environment's simulate method
+        return self.game.simulate(tmp)
 
     def backpropagate(self, value):
         with self.lock:
@@ -712,20 +706,14 @@ class Node_Compressed:
         return child
 
     def simulate(self):
+        """
+        Perform rollout simulation from this node's state.
+        Delegates to environment's simulate method.
+        """
         # Unpack to 2D array; simulation mutates a copy
         tmp = self.state.copy()
-        if self.args.get("simulate_with_priority", False):
-            return simulate_with_priority_nb(tmp,
-                                            self.game.row_count,
-                                            self.game.column_count,
-                                            self.game.pts_upper_bound,
-                                            self.game.priority_grid,
-                                            self.args['TopN'])
-        else:
-            return simulate_nb(tmp,
-                            self.game.row_count,
-                            self.game.column_count,
-                            self.game.pts_upper_bound)
+        # Delegate to environment's simulate method
+        return self.game.simulate(tmp)
 
     def backpropagate(self, value):
         with self.lock:
