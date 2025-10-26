@@ -14,6 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(ROOT)
 
 from src.algos.mcts import evaluate, MCTS
+from src.utils.seed import set_seeds, warmup_numba
 import numpy as np
 
 
@@ -120,6 +121,10 @@ def main():
     }
     with open(os.path.join(cohort_dir, "seeds.json"), "w") as f:
         json.dump(seeds_payload, f, indent=2)
+
+    # Warm up numba once at process startup
+    set_seeds(args.base_seed)
+    warmup_numba()
 
     # Prepare CSV writers
     runs_path = os.path.join(cohort_dir, "runs.csv")

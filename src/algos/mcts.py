@@ -29,15 +29,7 @@ import psutil
 import os
 
 from src.rewards.n3il_rewards import get_value_nb
-
-def set_seeds(seed):
-    """Set random seeds for reproducibility across all random number generators."""
-    np.random.seed(seed)
-    random.seed(seed)
-    # Force compilation of numba functions with the seeded state
-    # This ensures numba's internal random state is also seeded
-    from numba import config
-    config.THREADING_LAYER = 'safe'
+from src.utils.seed import set_seeds, warmup_numba
 
 @njit(cache=True, nogil=True)
 def exploration_decay_nb(x):  # Monotone-down from (0,1) to (1,0)
