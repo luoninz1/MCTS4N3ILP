@@ -145,14 +145,14 @@ class TestN3ilDuplicateInitBug:
     """Test to verify the duplicate init bug (to be fixed in Stage 1)."""
 
     def test_duplicate_init_no_crash(self, basic_args):
-        """Verify duplicate init doesn't cause immediate crash."""
-        # This test documents the current bug and ensures it at least doesn't crash
+        """Verify duplicate init is fixed and values are correct."""
+        # After fixing the duplicate init bug, pts_upper_bound should be row_count * column_count
         env = N3il(grid_size=(4, 4), args=basic_args, priority_grid=None)
 
         assert env.row_count == 4
         assert env.column_count == 4
         assert env.action_size == 16
-        assert env.pts_upper_bound == 8
+        assert env.pts_upper_bound == 16  # Fixed: now using row_count * column_count (not np.min * 2)
 
 
 class TestN3ilWithSymmetry:
@@ -188,6 +188,7 @@ class TestN3ilWithSymmetry:
         args = {
             'max_level_to_use_symmetry': 10,
             'n': 4,
+            'TopN': 4,  # Required for get_valid_moves when priority_grid is used
         }
         env = N3il_with_symmetry(grid_size=(4, 4), args=args, priority_grid=None)
         state = env.get_initial_state()

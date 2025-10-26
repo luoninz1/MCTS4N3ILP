@@ -852,15 +852,10 @@ class N3il:
         self.pts_upper_bound = self.row_count * self.column_count
         self.priority_grid = priority_grid if priority_grid is not None else np.zeros(grid_size)
         self.args = args
-        
+
         # Set max_level_to_use_symmetry with default value
         self.max_level_to_use_symmetry = args.get('max_level_to_use_symmetry', 0)
-        self.row_count, self.column_count = grid_size
-        self.pts_upper_bound = np.min(grid_size) * 2
-        self.action_size = self.row_count * self.column_count
-        self.args = args
-        self.priority_grid = priority_grid  # Store priority grid
-        
+
         # Create session name with timestamp and grid size
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_name = f"{timestamp}_{self.row_count}by{self.column_count}"
@@ -1435,7 +1430,6 @@ class N3il_with_symmetry(N3il):
     def __init__(self, grid_size, args, priority_grid=None):
         super().__init__(grid_size, args, priority_grid)
         # Random seed is already set in parent class
-        super().__init__(grid_size, args, priority_grid)
         self.max_level_to_use_symmetry = args['max_level_to_use_symmetry']
         self.use_symmetry = True if self.max_level_to_use_symmetry > 0 else False
 
