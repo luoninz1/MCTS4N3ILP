@@ -8,7 +8,8 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(ROOT)
 
-from src.algos.mcts import evaluate, MCTS, set_seeds
+from src.algos.mcts import evaluate, MCTS
+from src.utils.seed import set_seeds, warmup_numba
 from src.envs import N3il, N3il_with_symmetry
 
 
@@ -38,10 +39,12 @@ class TestMCTSSingleRun:
 
         # Run 1
         set_seeds(42)
+        warmup_numba()
         result1 = evaluate(args.copy())
 
         # Run 2 with same seed
         set_seeds(42)
+        warmup_numba()
         result2 = evaluate(args.copy())
 
         # Should produce identical results

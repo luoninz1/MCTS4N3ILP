@@ -191,33 +191,6 @@ def get_valid_moves_subset_nb(parent_state, parent_valid_moves, action_taken, ro
 
     return mask
 
-# JIT-compiled function to count collinear triples on the board
-@njit(cache=True, nogil=True)
-def check_collinear_nb(state, row_count, column_count):
-    max_pts = row_count * column_count
-    coords = np.empty((max_pts, 2), np.int64)
-    n_pts = 0
-
-    # Collect all placed point coordinates
-    for i in range(row_count):
-        for j in range(column_count):
-            if state[i, j] == 1:
-                coords[n_pts, 0] = i
-                coords[n_pts, 1] = j
-                n_pts += 1
-
-    triples = 0
-    # Count all collinear triplets
-    for a in range(n_pts):
-        for b in range(a + 1, n_pts):
-            for c in range(b + 1, n_pts):
-                i1, j1 = coords[a, 0], coords[a, 1]
-                i2, j2 = coords[b, 0], coords[b, 1]
-                i3, j3 = coords[c, 0], coords[c, 1]
-                if _are_collinear(j1, i1, j2, i2, j3, i3):
-                    triples += 1
-    return triples
-
 @njit(cache=True, nogil=True)
 def simulate_nb(state, row_count, column_count, pts_upper_bound):
     """
