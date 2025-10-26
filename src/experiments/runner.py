@@ -52,9 +52,10 @@ def run_experiment(args):
     from src.algos.mcts import MCTS, ParallelMCTS, LeafChildParallelMCTS, MCGS
 
     # Set seeds if provided
+    # Note: warmup_numba() should be called once at process startup,
+    # not per experiment. See baseline_pre_refactor.py for example.
     if 'random_seed' in args:
         set_seeds(args['random_seed'])
-        warmup_numba()
 
     # Build priority grid
     priority_grid_arr = supnorm_priority_array(args['n'])
