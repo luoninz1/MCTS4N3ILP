@@ -935,6 +935,25 @@ class N3il:
         ).astype(np.float32)
         
         return encoded_state
+    
+    def simulate(self, state):
+        if self.args.get('simulate_with_priority', False):
+            topN = self.args.get('TopN', 1)
+            return simulate_with_priority_nb(
+                state.copy(),
+                self.row_count,
+                self.column_count,
+                self.pts_upper_bound,
+                self.priority_grid,
+                topN
+            )
+        else:
+            return simulate_nb(
+                state.copy(),
+                self.row_count,
+                self.column_count,
+                self.pts_upper_bound
+            )
 
     def display_state(self, state, action_prob=None):
         """

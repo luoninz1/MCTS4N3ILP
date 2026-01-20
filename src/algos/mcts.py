@@ -20,13 +20,14 @@ from typing import Tuple, List, Set, Callable, NamedTuple, Union, Optional, Iter
 from multiprocessing import Pool
 from sympy import Rational, Integer
 from sympy.core.numbers import igcd
-from src.envs import N3il, N3il_with_symmetry, supnorm_priority, supnorm_priority_array
+from src.envs import N3il, N3il_with_symmetry, N3il_with_symmetry_and_symmetric_actions, supnorm_priority, supnorm_priority_array
 import io
 import base64
 from pyvis.network import Network
 
 import psutil
 import os
+import warnings
 
 from src.rewards.n3il_rewards import get_value_nb
 
@@ -87,6 +88,8 @@ def exploration_decay_nb(x):  # Monotone-down from (0,1) to (1,0)
     # Cubic decay
     # return 1 - x ** 3 # 91/100 times (91.0%)
     # return 1 - (0.9 * (x ** 3)) # 91/100 times (91.0%)
+
+'''
 
 @njit(cache=True, nogil=True)
 def value_fn_nb(x):
@@ -383,7 +386,7 @@ def simulate_with_priority_nb(state, row_count, column_count, pts_upper_bound, p
         total_valid = np.sum(valid_moves)
 
     return get_value_nb(state, pts_upper_bound)
-
+'''
 
 class Node:
     def __init__(self, game, args, state, parent=None, action_taken=None):
@@ -493,18 +496,7 @@ class Node:
 
     def simulate(self):
         tmp = self.state.copy()
-        if self.args["simulate_with_priority"] == True:
-            return simulate_with_priority_nb(tmp,
-                                            self.game.row_count,
-                                            self.game.column_count,
-                                            self.game.pts_upper_bound,
-                                            self.game.priority_grid,
-                                            self.args['TopN'])
-        else:
-            return simulate_nb(tmp,
-                            self.game.row_count,
-                            self.game.column_count,
-                            self.game.pts_upper_bound)
+        return self.game.simulate(tmp)
 
     def backpropagate(self, value):
         with self.lock:
@@ -2204,13 +2196,51 @@ def select_outermost_with_tiebreaker(mcts_probs, n):
     action = chosen_pos[0] * n + chosen_pos[1]
     return action
 
+def get_d4_orbit(action, n, symmetry_mode):
+    """
+    Generate all valid (row, col) pairs corresponding to the 'symmetry_mode' string.
+    The string is split by '_then_', and each part is treated as a generator applied
+    to the current set of points.
+    """
+    row = action // n
+    col = action % n
+    points = {(row, col)}
+    
+    if not symmetry_mode:
+        return points
+
+    # Available transformations
+    transforms = {
+        'horizontal_flip':      lambda r, c: (r, n - 1 - c),          # Reflect across vertical axis |
+        'vertical_flip':        lambda r, c: (n - 1 - r, c),          # Reflect across horizontal axis -
+        'diagonal_flip':        lambda r, c: (c, r),                  # Reflect across main diagonal \
+        'anti_diagonal_flip':   lambda r, c: (n - 1 - c, n - 1 - r),  # Reflect across anti-diagonal /
+        'rotation_90':          lambda r, c: (c, n - 1 - r),          # 90 deg clockwise
+        'rotation_180':         lambda r, c: (n - 1 - r, n - 1 - c),  # 180 deg
+        'rotation_270':         lambda r, c: (n - 1 - c, r)           # 270 deg clockwise
+    }
+    
+    # Parse operations sequence (e.g., "horizontal_flip_then_vertical_flip")
+    operations = symmetry_mode.split('_then_')
+    
+    for op in operations:
+        if op in transforms:
+            func = transforms[op]
+            # Apply this transform to all currently found points and extend the set
+            new_points = set()
+            for (r, c) in points:
+                new_points.add(func(r, c))
+            points.update(new_points)
+            
+    return points
+
 def evaluate(args):
     # Set random seeds for reproducibility at the start of evaluation
     if 'random_seed' in args:
         set_seeds(args['random_seed'])
         # Also warmup numba functions with seeded state
-        dummy_state = np.zeros((2, 2), dtype=np.int8)
-        _ = simulate_nb(dummy_state, 2, 2, 4)
+        # dummy_state = np.zeros((2, 2), dtype=np.int8)
+        # _ = simulate_nb(dummy_state, 2, 2, 4)
     
     priority_grid_arr = supnorm_priority_array(args['n'])
     start = time.time()
@@ -2221,6 +2251,8 @@ def evaluate(args):
         n3il =  N3il_with_symmetry(grid_size=(args['n'], args['n']), args=args, priority_grid=priority_grid_arr)
     elif args['environment'] == 'N3il':
         n3il = N3il(grid_size=(args['n'], args['n']), args=args, priority_grid=priority_grid_arr)
+    elif args['environment'] == 'N3il_with_symmetry_and_symmetric_actions':
+        n3il = N3il_with_symmetry_and_symmetric_actions(grid_size=(args['n'], args['n']), args=args, priority_grid=priority_grid_arr)
     else:
         raise ValueError(f"Unknown environment: {args['environment']}")
 
@@ -2296,6 +2328,28 @@ def evaluate(args):
         # Display MCTS probabilities and board
         if args['display_state'] == True:
             n3il.display_state(state, mcts_probs)
+
+        if args['symmetric_action'] is not None:
+            # Get all symmetric actions for logging
+            sym_actions = get_d4_orbit(action, n, args['symmetric_action'])
+            print(f"Chosen action: {action} and symmetric actions: {sym_actions}")
+            temp_state = state.copy()
+            for coordinate in sym_actions:
+                r = coordinate[0]
+                c = coordinate[1]
+                sym_action = r * n + c
+                if valid_moves[sym_action] == 1:
+                    valid_moves = n3il.get_valid_moves_subset(temp_state, valid_moves, sym_action)
+                    temp_state = n3il.get_next_state(temp_state, sym_action)
+                    print(f"Applied symmetric action: {sym_action} at ({r}, {c})")
+                else:   
+                    warnings.warn(f"{sym_action} at ({r}, {c}) NOT in action space; Fallback to single action.")
+                    break
+            # Update state after applying all symmetric actions
+            else:
+                num_of_points += len(sym_actions)
+                state = temp_state
+                continue  # Skip the single action application below
 
         # Apply action
         num_of_points += 1
