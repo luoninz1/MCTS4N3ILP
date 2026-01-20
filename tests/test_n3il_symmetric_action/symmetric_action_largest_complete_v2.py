@@ -7,10 +7,10 @@ from src.algos.mcts import evaluate, MCTS
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=40, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=41, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=20, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=21, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
-    parser.add_argument("--repeat", type=int, default=3, help="Number of runs for each n value")
+    parser.add_argument("--repeat", type=int, default=10, help="Number of runs for each n value")
     args_cli = parser.parse_args()
 
     # Generate list of n values
@@ -32,7 +32,7 @@ if __name__ == "__main__":
             args = {
                 'environment': 'N3il_with_symmetry_and_symmetric_actions',  # Specify the environment
                 'algorithm': 'MCTS',
-                'symmetric_action': 'horizontal_flip_then_vertical_flip_then_diagonal_flip',  # Specify symmetric action mode
+                'symmetric_action': 'rotation_90_then_rotation_180',  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': False,  # Enable node compression
                 'max_level_to_use_symmetry': 2*n,  # Use symmetry for first 2 levels (helps find compact solutions)

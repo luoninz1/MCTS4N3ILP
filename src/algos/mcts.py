@@ -2293,30 +2293,29 @@ def evaluate(args):
             n3il.display_state(state, mcts_probs)
 
         if args['symmetric_action'] is not None:
-            # Get all symmetric actions for logging
-            sym_actions = get_d4_orbit(action, n, args['symmetric_action'])
-            print(f"Chosen action: {action} and symmetric actions: {sym_actions}")
-            temp_state = state.copy()
-            for coordinate in sym_actions:
-                r = coordinate[0]
-                c = coordinate[1]
-                sym_action = r * n + c
-                if valid_moves[sym_action] == 1:
-                    valid_moves = n3il.get_valid_moves_subset(temp_state, valid_moves, sym_action)
-                    temp_state = n3il.get_next_state(temp_state, sym_action)
-                    print(f"Applied symmetric action: {sym_action} at ({r}, {c})")
-                else:   
-                    warnings.warn(f"{sym_action} at ({r}, {c}) NOT in action space; Fallback to single action.")
-                    break
-            # Update state after applying all symmetric actions
-            else:
-                num_of_points += len(sym_actions)
-                state = temp_state
-                continue  # Skip the single action application below
+             # Logic is now handled by N3il_with_symmetry_and_symmetric_actions internal get_next_state
+             # However, we need to know the number of points added to increment num_of_points correctly.
+             
+             next_state = n3il.get_next_state(state, action)
+             
+             # Calculate points added
+             prev_count = np.sum(state)
+             new_count = np.sum(next_state)
+             points_added = new_count - prev_count
+             num_of_points += points_added
+             
+             state = next_state
+             
+             # Log actions
+             if points_added > 1:
+                print(f"Applied symmetric batch action: {points_added} points added.")
+             else:
+                warnings.warn(f"Symmetric action fallback triggered. Only single action {action} applied.")
 
-        # Apply action
-        num_of_points += 1
-        state = n3il.get_next_state(state, action)
+        else:
+            # Apply action
+            num_of_points += 1
+            state = n3il.get_next_state(state, action)
     
     if args['logging_mode'] == True:
         return num_of_points
