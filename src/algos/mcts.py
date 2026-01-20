@@ -2231,6 +2231,8 @@ def get_d4_orbit(action, n, symmetry_mode):
             for (r, c) in points:
                 new_points.add(func(r, c))
             points.update(new_points)
+        else:
+            raise ValueError(f"Unknown symmetry operation: {op}")
             
     return points
 
