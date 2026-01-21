@@ -723,10 +723,7 @@ class Node_Compressed:
                                             self.game.priority_grid,
                                             self.args['TopN'])
         else:
-            return simulate_nb(tmp,
-                            self.game.row_count,
-                            self.game.column_count,
-                            self.game.pts_upper_bound)
+            return self.game.simulate(tmp)
 
     def backpropagate(self, value):
         with self.lock:
@@ -1613,7 +1610,7 @@ class MCTS:
         # define root
         if self.args.get('node_compression', False):
             root = Node_Compressed(self.game, self.args, state)
-            print("Using Node_Compressed for MCTS")
+            print("Using Node_Compressed for MCTS", flush=True)
         else:
             root = Node(self.game, self.args, state)
 

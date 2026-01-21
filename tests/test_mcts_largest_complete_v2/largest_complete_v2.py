@@ -32,7 +32,7 @@ if __name__ == "__main__":
             args = {
                 'environment': 'N3il_with_symmetry',  # Specify the environment
                 'algorithm': 'MCTS',
-                'node_compression': False,  # Enable node compression
+                'node_compression': True,  # Enable node compression
                 'max_level_to_use_symmetry': 1,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
                 'C': 1.41,  # 1e-7 for n=20
