@@ -54,8 +54,8 @@ echo "Detected folder: ${current_dir} -> Using symmetric_action: ${symmetric_act
 # $1 = start value, $2 = step size
 python symmetric_action_largest_complete_v3.py \
     --start "$1" \
-    --end 104 \
-    --step 104 \
+    --end 31 \
+    --step 5 \
     --repeat 10 \
     --symmetric_action "${symmetric_action}" \
-    > logs/mcts_largest_complete_v2_n_"$1".log
+    > logs/test_n3il_symmetric_action_largest_complete_v3_different_symmetry_${symmetric_action}_n_"$1".log

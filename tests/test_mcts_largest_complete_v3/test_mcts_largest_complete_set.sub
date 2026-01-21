@@ -24,20 +24,15 @@ export NUMBA_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export NUMBA_THREADING_LAYER=omp
 
 # ===== Expected resources (derived from start) vs Actual resources (after sbatch override) =====
-# Rule: starting from start=53, every +20 ⇒ +6G memory & +1 CPU core; initial is 1 core / 6G
+# Fixed resources: 1 core / 6G
 start="$1"
-inc=$(( (start-53)/20 ))
-(( inc < 0 )) && inc=0
-
-exp_cpus=$(( 1 + inc ))
-exp_mem_g=$(( 6 + 6*inc ))  # GiB
 
 # Dynamically update job name, include start for identification
 scontrol update JobId=$SLURM_JOB_ID JobName="n${start}_mcts_largest_complete_test" >/dev/null 2>&1 || true
 
 echo "========== RESOURCE CHECK (JobID=$SLURM_JOB_ID) =========="
 echo "Start parameter        : ${start}"
-echo "Expected (rule)        : CPUs=${exp_cpus}, MEM=${exp_mem_g}G"
+echo "Fixed Resources        : CPUs=1, MEM=6G"
 echo "SLURM_CPUS_PER_TASK    : ${SLURM_CPUS_PER_TASK:-N/A}"
 echo "SLURM_JOB_CPUS_PER_NODE: ${SLURM_JOB_CPUS_PER_NODE:-N/A}"
 echo "SLURM_MEM_PER_CPU      : ${SLURM_MEM_PER_CPU:-N/A}  (MB, if defined by site)"
@@ -50,9 +45,9 @@ scontrol show job $SLURM_JOB_ID | awk '
 echo "=========================================================="
 
 # $1 = start value, $2 = step size
-python largest_complete_v2.py \
+python largest_complete_v3.py \
     --start "$1" \
     --end 104 \
     --step 104 \
     --repeat 1 \
-    > logs/mcts_largest_complete_v2_n_"$1".log
+    > logs/mcts_largest_complete_v3_n_"$1".log

@@ -39,7 +39,7 @@ if __name__ == "__main__":
                 'num_searches': 10*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
                 'virtual_loss': 1.0,     # magnitude to subtract at reservation
-                'process_bar': True,
+                'process_bar': False,
                 'display_state': True,
                 'logging_mode': True,  # Enable logging mode to get return value
                 'TopN': n,  # Without Priority
