@@ -152,6 +152,7 @@ cython_debug/
 # Experimental results and figures
 results/
 figures/
+figure/
 logs/
 *.csv
 *.png
