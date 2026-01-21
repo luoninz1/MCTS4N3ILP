@@ -18,14 +18,17 @@ def get_value_exp_norm_nb(state: NDArray, pts_upper_bound: int, coeff: float = 2
 def get_value_nb(state: NDArray, pts_upper_bound: int):
     total = np.sum(state)
     n = pts_upper_bound/2
-    
-    # === REVERSE REWARDING FUNCTIONS (prefer smaller point counts) ===
+
+    # Exponential Growth
+
+    return np.exp(2.0 * ((total-n) / n))  # Range: [e^-2, 1] ≈ [0.135, 1]
+
     
     # 1. Simple Linear Inverse: 1.0 for empty board, 0.0 for full board
     # return (1.2*n - total) / n  # Range: [0, 1]
     
     # 2. Exponential Decay (Strong preference for fewer points)
-    return np.exp(2.0 * ((total-n) / n))  # Range: [e^-2, 1] ≈ [0.135, 1]
+    # return np.exp(2.0 * ((total-n) / n))  # Range: [e^-2, 1] ≈ [0.135, 1]
     # return np.exp(-1.0 * (total / n))  # Range: [e^-1, 1] ≈ [0.368, 1]
     # return np.exp(-0.5 * (total / n))  # Range: [e^-0.5, 1] ≈ [0.607, 1]
     

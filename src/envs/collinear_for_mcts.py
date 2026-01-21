@@ -1068,15 +1068,21 @@ class N3il:
         # Save the plot with timestamp, grid size, and number of points for unique filenames
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"no_three_in_line_{rows}x{cols}_pts{num_points}_{algorithm}_{timestamp}.png"
+        npy_filename = f"no_three_in_line_{rows}x{cols}_pts{num_points}_{algorithm}_{timestamp}.npy"
         
         # Full path for the file
         full_path = os.path.join(self._display_folder, filename)
+        npy_full_path = os.path.join(self._display_folder, npy_filename)
         
         try:
             plt.savefig(full_path, format='png', dpi=dpi, bbox_inches='tight')
             print(f"Plot saved as: {full_path} (DPI: {dpi})")
+            
+            # Save the state array
+            np.save(npy_full_path, state)
+            print(f"State saved as: {npy_full_path}")
         except Exception as e:
-            print(f"Error saving plot: {e}")
+            print(f"Error saving plot or state: {e}")
         finally:
             plt.close()  # Close the figure to free memory
 
