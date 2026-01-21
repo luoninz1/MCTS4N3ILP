@@ -2262,7 +2262,6 @@ def evaluate(args):
             max_pts = -1
             
             # Pattern to extract pts count: ..._pts{number}_...
-            import re
             pattern = re.compile(r'_pts(\d+)_')
             
             for f in npy_files:
@@ -2306,7 +2305,6 @@ def evaluate(args):
             # Check if the loaded state is terminal
             valid_moves_check = n3il.get_valid_moves(state)
             if np.sum(valid_moves_check) == 0:
-                import warnings
                 warnings.warn(f"Loaded state from {target_npy_file} is terminal. Exiting evaluation.")
                 return num_of_points
 
@@ -2361,7 +2359,7 @@ def evaluate(args):
         if args['display_state'] == True:
             n3il.display_state(state, mcts_probs)
 
-        if args['symmetric_action'] is not None:
+        if args.get('symmetric_action', None):
              # Logic is now handled by N3il_with_symmetry_and_symmetric_actions internal get_next_state
              # However, we need to know the number of points added to increment num_of_points correctly.
              
