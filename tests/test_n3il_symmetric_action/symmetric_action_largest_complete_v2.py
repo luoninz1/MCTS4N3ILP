@@ -51,6 +51,7 @@ if __name__ == "__main__":
                 'random_seed': i,  # Use the loop index as a seed for reproducibility
                 'tree_visualization': False,  # Enable tree visualization
                 'pause_at_each_step': False,  # Disable interactive prompts for automation
+                'continue_from_existing_state': 'tests/test_n3il_symmetric_action/figure/20260120_203209_20by20/no_three_in_line_20x20_pts32_MCTS_20260120_203214.npy', # None: continuation; str: path to load
             }
             
             # Get the result from evaluate function

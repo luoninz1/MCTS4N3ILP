@@ -2245,8 +2245,75 @@ def evaluate(args):
         trial_id = f"trial_{args.get('random_seed', 'unknown')}_n{args.get('n', 'unknown')}"
         mcts.trial_id = trial_id
 
-    state = n3il.get_initial_state()
-    num_of_points = 0
+    # Handle continuation from existing state
+    continue_path = args.get('continue_from_existing_state')
+    
+    if continue_path:
+        target_npy_file = None
+        
+        # If path doesn't exist, raise error immediately
+        if not os.path.exists(continue_path):
+            raise FileNotFoundError(f"Path for continuation not found: {continue_path}")
+            
+        if os.path.isdir(continue_path):
+            # Find the best .npy file in the directory (max pts, deepest search)
+            npy_files = [f for f in os.listdir(continue_path) if f.endswith('.npy')]
+            if not npy_files:
+                raise FileNotFoundError(f"No .npy files found in directory: {continue_path}")
+            
+            best_file = None
+            max_pts = -1
+            
+            # Pattern to extract pts count: ..._pts{number}_...
+            import re
+            pattern = re.compile(r'_pts(\d+)_')
+            
+            for f in npy_files:
+                match = pattern.search(f)
+                if match:
+                    pts = int(match.group(1))
+                    # Pick the one with most points (deepest search)
+                    if pts > max_pts:
+                        max_pts = pts
+                        best_file = f
+            
+            if best_file:
+                target_npy_file = os.path.join(continue_path, best_file)
+                print(f"Resuming from best found state (pts={max_pts}): {target_npy_file}")
+            else:
+                 # If no pattern matched, maybe just take the last one alphabetically or raise error?
+                 # Let's try to just use the sorted last file as fallback or raise an error
+                 raise ValueError(f"Could not determine best state file (with _ptsN_ pattern) from {continue_path}")
+        
+        elif os.path.isfile(continue_path):
+            if not continue_path.endswith('.npy'):
+                 raise ValueError(f"Specified file must be an .npy file: {continue_path}")
+            target_npy_file = continue_path
+            print(f"Resuming from specified state: {target_npy_file}")
+
+        # Final check
+        if not target_npy_file or not os.path.exists(target_npy_file):
+             raise FileNotFoundError(f"Target state file does not exist: {target_npy_file}")
+
+        # Load state
+        try:
+            state = np.load(target_npy_file)
+            num_of_points = int(np.sum(state))
+            print(f"Successfully loaded state with {num_of_points} points.")
+            
+            # Check if the loaded state is terminal
+            valid_moves_check = n3il.get_valid_moves(state)
+            if np.sum(valid_moves_check) == 0:
+                import warnings
+                warnings.warn(f"Loaded state from {target_npy_file} is terminal. Exiting evaluation.")
+                return num_of_points
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to load state from {target_npy_file}: {e}")
+        
+    else:
+        state = n3il.get_initial_state()
+        num_of_points = 0
 
     while True:
         if args['display_state'] == True:

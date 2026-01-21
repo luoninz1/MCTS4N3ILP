@@ -864,6 +864,19 @@ class N3il:
         # Create session name with timestamp and grid size
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_name = f"{timestamp}_{self.row_count}by{self.column_count}"
+        
+        # If continuing from existing state, update session name
+        if self.args.get('continue_from_existing_state'):
+            cont_path = self.args['continue_from_existing_state']
+            # Try to extract the original session name from the path
+            if os.path.isdir(cont_path):
+                # If directory, use the folder name
+                original_session_name = os.path.basename(os.path.normpath(cont_path))
+            else:
+                # If file, use the parent folder name
+                original_session_name = os.path.basename(os.path.dirname(os.path.normpath(cont_path)))
+            
+            self.session_name = f"{self.session_name}_continued_from_{original_session_name}"
 
     def state_to_key(self, state):
         """Convert state to a hashable key for the node registry."""
@@ -967,8 +980,8 @@ class N3il:
 
         # Create date-time folder once per instance
         if not hasattr(self, '_display_folder'):
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            folder_name = f"{timestamp}_{rows}by{cols}"
+            # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            folder_name = self.session_name
             base_dir = self.args.get('figure_dir', 'figures')
             self._display_folder = os.path.join(base_dir, folder_name)
             os.makedirs(self._display_folder, exist_ok=True)
