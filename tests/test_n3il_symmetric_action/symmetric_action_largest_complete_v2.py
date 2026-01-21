@@ -7,8 +7,8 @@ from src.algos.mcts import evaluate, MCTS
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=20, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=21, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=40, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=41, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
     args_cli = parser.parse_args()
@@ -38,7 +38,7 @@ if __name__ == "__main__":
                 'max_level_to_use_symmetry': 2*n,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
                 'C': 1.41,  # 1e-7 for n=20
-                'num_searches': 10*(n**2),  # Reduced for testing tree visualization
+                'num_searches': 100*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
                 'virtual_loss': 1.0,     # magnitude to subtract at reservation
                 'process_bar': True,
@@ -51,7 +51,7 @@ if __name__ == "__main__":
                 'random_seed': i,  # Use the loop index as a seed for reproducibility
                 'tree_visualization': False,  # Enable tree visualization
                 'pause_at_each_step': False,  # Disable interactive prompts for automation
-                'continue_from_existing_state': 'tests/test_n3il_symmetric_action/figure/20260120_203209_20by20/no_three_in_line_20x20_pts32_MCTS_20260120_203214.npy', # None: continuation; str: path to load
+                'continue_from_existing_state': None, # None: continuation; str: path to load
             }
             
             # Get the result from evaluate function

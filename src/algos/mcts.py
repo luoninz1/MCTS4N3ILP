@@ -2298,6 +2298,11 @@ def evaluate(args):
         # Load state
         try:
             state = np.load(target_npy_file)
+            
+            # Check shape
+            if state.shape != (n, n):
+                 raise ValueError(f"Loaded state shape {state.shape} does not match expected grid size ({n}, {n})")
+
             num_of_points = int(np.sum(state))
             print(f"Successfully loaded state with {num_of_points} points.")
             
