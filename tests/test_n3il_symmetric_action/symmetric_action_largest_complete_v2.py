@@ -34,11 +34,24 @@ if __name__ == "__main__":
                 'algorithm': 'MCTS',
                 'symmetric_action': 'rotation_90_then_rotation_180',  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
+                """
+                Available subgroups of D4 for 'symmetric_action':
+                - Order 1: None (Identity only)
+                - Order 2: 
+                    'rotation_180', 'horizontal_flip', 'vertical_flip', 
+                    'diagonal_flip', 'anti_diagonal_flip'
+                - Order 4:
+                    'rotation_90_then_rotation_180' (Cyclic C4: 90, 180, 270 rotations)
+                    'vertical_flip_then_horizontal_flip' (V4-A: Rectangular symmetry)
+                    'diagonal_flip_then_anti_diagonal_flip' (V4-B: Rhombic symmetry)
+                - Order 8:
+                    'vertical_flip_then_horizontal_flip_then_diagonal_flip' (Full D4 symmetry)
+                """
                 'node_compression': False,  # Enable node compression
                 'max_level_to_use_symmetry': 2*n,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
                 'C': 1.41,  # 1e-7 for n=20
-                'num_searches': 100*(n**2),  # Reduced for testing tree visualization
+                'num_searches': 10*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
                 'virtual_loss': 1.0,     # magnitude to subtract at reservation
                 'process_bar': True,
