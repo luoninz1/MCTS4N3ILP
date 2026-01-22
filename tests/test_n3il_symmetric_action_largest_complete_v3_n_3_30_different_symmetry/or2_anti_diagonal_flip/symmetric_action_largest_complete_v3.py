@@ -7,10 +7,10 @@ from src.algos.mcts import evaluate, MCTS
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=14, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=15, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=5, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=7, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
-    parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
+    parser.add_argument("--repeat", type=int, default=3, help="Number of runs for each n value")
     parser.add_argument("--symmetric_action", type=str, default="rotation_180", help="Symmetric action mode (e.g., 'vertical_flip_then_horizontal_flip_then_diagonal_flip')")
     args_cli = parser.parse_args()
 
@@ -21,13 +21,12 @@ if __name__ == "__main__":
     MCTS.clear_global_data()
 
     # Store results for all trials
-    all_results = {}
+    all_results = {n: [] for n in n_list}
     
-    for n in n_list:
-        print(f"\n=== Starting experiments for grid size n={n} ===")
-        results_for_n = []
+    for i in range(args_cli.repeat):
+        print(f"\n=== Starting Trial {i+1}/{args_cli.repeat} ===")
         
-        for i in range(args_cli.repeat):
+        for n in n_list:
             print(f"Trial {i+1}/{args_cli.repeat} for n={n}...", end=" ")
 
             """
@@ -71,18 +70,22 @@ if __name__ == "__main__":
             
             # Get the result from evaluate function
             num_points = evaluate(args)
-            results_for_n.append(num_points)
+            all_results[n].append(num_points)
             print(f"Final points: {num_points}")
-        
-        all_results[n] = results_for_n
-        
+    
+    # Process summaries after all trials
+    for n in n_list:
+        results_for_n = all_results[n]
         # Print summary for this grid size
         print(f"\n--- Summary for n={n} ---")
         print(f"Results: {results_for_n}")
-        print(f"Min points: {min(results_for_n)}")
-        print(f"Max points: {max(results_for_n)}")
-        print(f"Average points: {sum(results_for_n)/len(results_for_n):.2f}")
-        print(f"Median points: {sorted(results_for_n)[len(results_for_n)//2]}")
+        if results_for_n:
+            print(f"Min points: {min(results_for_n)}")
+            print(f"Max points: {max(results_for_n)}")
+            print(f"Average points: {sum(results_for_n)/len(results_for_n):.2f}")
+            print(f"Median points: {sorted(results_for_n)[len(results_for_n)//2]}")
+        else:
+            print("No results collected.")
     
     # Print overall summary
     print("\n" + "="*60)
