@@ -442,30 +442,33 @@ class Node:
     def is_fully_expanded(self):
         return self.is_full and len(self.children) > 0
 
-    def select(self, iter):
+    def select(self, exploration_factor):
         best_child = None
         best_ucb = -np.inf
         log_N = math.log(self.visit_count)
 
         for child in self.children:
-            ucb = self.get_ucb(child, iter, log_N)
+            ucb = self.get_ucb(child, exploration_factor, log_N)
             if ucb > best_ucb:
                 best_child = child
                 best_ucb = ucb
 
         return best_child
 
-    def get_ucb(self, child, iter, log_N=None):
+    def get_ucb(self, child, exploration_factor, log_N=None):
         if log_N is None:
             log_N = math.log(self.visit_count)
+
+        # Optimization: Optimistic read without lock
+        if not child._ucb_dirty and child._cached_ucb is not None:
+            return child._cached_ucb
 
         with child.lock:
             if not child._ucb_dirty and child._cached_ucb is not None:
                 return child._cached_ucb
 
             q_value = child.value_sum / child.visit_count
-            T_i = self.args['C'] * exploration_decay_nb(iter/self.args['num_searches'])
-            exploration_value = T_i * math.sqrt(log_N / child.visit_count)
+            exploration_value = exploration_factor * math.sqrt(log_N / child.visit_count)
             ucb = q_value + exploration_value
             # print("Exploit:", q_value)
             # print("Explore:", exploration_value)
@@ -646,31 +649,34 @@ class Node_Compressed:
     def is_fully_expanded(self):
         return self.is_full and len(self.children) > 0
 
-    def select(self, iter):
+    def select(self, exploration_factor):
         best_child = None
         best_ucb = -np.inf
         # avoid log(0)
         log_N = math.log(self.visit_count) if self.visit_count > 0 else 0.0
 
         for child in self.children:
-            ucb = self.get_ucb(child, iter, log_N)
+            ucb = self.get_ucb(child, exploration_factor, log_N)
             if ucb > best_ucb:
                 best_child = child
                 best_ucb = ucb
 
         return best_child
 
-    def get_ucb(self, child, iter, log_N=None):
+    def get_ucb(self, child, exploration_factor, log_N=None):
         if log_N is None:
             log_N = math.log(self.visit_count) if self.visit_count > 0 else 0.0
+
+        # Optimization: Optimistic read without lock
+        if not child._ucb_dirty and child._cached_ucb is not None:
+            return child._cached_ucb
 
         with child.lock:
             if not child._ucb_dirty and child._cached_ucb is not None:
                 return child._cached_ucb
 
             q_value = child.value_sum / max(1, child.visit_count)
-            T_i = self.args['C'] * exploration_decay_nb(iter/self.args['num_searches'])
-            exploration_value = T_i * math.sqrt(max(1e-12, log_N) / max(1, child.visit_count))
+            exploration_value = exploration_factor * math.sqrt(max(1e-12, log_N) / max(1, child.visit_count))
             ucb = q_value + exploration_value
             child._cached_ucb = ucb
             child._ucb_dirty = False
@@ -1653,12 +1659,20 @@ class MCTS:
         else:
             search_iterator = range(self.args['num_searches'])
 
+        # Pre-fetch Constant C
+        const_C = self.args['C']
+        num_searches = self.args['num_searches']
+
         for search in search_iterator:
             node = root
 
+            # Optimization: Calculate decay once per search iteration
+            ratio = search / num_searches
+            exploration_factor = const_C * exploration_decay_nb(ratio)
+
             # selection
             while node.is_fully_expanded(): #         return self.is_full and len(self.children) > 0
-                node = node.select(iter=search)
+                node = node.select(exploration_factor=exploration_factor)
 
             if node.action_taken is not None:
                 value, is_terminal = self.game.get_value_and_terminated(node.state, node.valid_moves)
@@ -1760,12 +1774,20 @@ class MCTS_Tree_Reuse(MCTS):
             else:
                 search_iterator = range(remaining_searches)
 
+            # Pre-fetch Constant C
+            const_C = self.args['C']
+
             for search in search_iterator:
                 node = root
 
+                # Optimization with Tree Reuse Ratio
+                ratio = (current_visits + search) / target_searches
+                if ratio > 1.0: ratio = 1.0
+                exploration_factor = const_C * exploration_decay_nb(ratio)
+
                 # selection
                 while node.is_fully_expanded():
-                    node = node.select(iter=search)
+                    node = node.select(exploration_factor=exploration_factor)
 
                 if node.action_taken is not None:
                     value, is_terminal = self.game.get_value_and_terminated(node.state, node.valid_moves)
