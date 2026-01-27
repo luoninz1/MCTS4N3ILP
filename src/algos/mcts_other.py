@@ -57,11 +57,13 @@ class ParallelMCTS(MCTS):
             node = node.expand()
         path.append(node)
         node.apply_virtual_loss()             # reserve leaf
-        value = node.simulate() if not self.game.get_value_and_terminated(
-            node.state, node.valid_moves
-        )[1] else self.game.get_value_and_terminated(
-            node.state, node.valid_moves
-        )[0]
+        
+        # Simulate
+        is_term = self.game.get_value_and_terminated(node.state, node.valid_moves)[1]
+        if not is_term:
+            value, _ = node.simulate()
+        else:
+            value = self.game.get_value_and_terminated(node.state, node.valid_moves)[0]
 
         # 3. UNDO VIRTUAL LOSS + BACKPROP
         for n in path:
@@ -110,10 +112,12 @@ class ParallelMCTS(MCTS):
 def _rollout_many(child, R: int):
     """Run child.simulate() R times in the same worker thread; return the list of values."""
     if R <= 1:
-        return [child.simulate()]
+        val, _ = child.simulate()
+        return [val]
     vals = []
     for _ in range(R):
-        vals.append(child.simulate())
+        val, _ = child.simulate()
+        vals.append(val)
     return vals
 
 # --- Child-parallel expansion node ---
@@ -199,10 +203,18 @@ class LeafChildParallelMCTS(MCTS):
         No backprop here; caller will backprop in main thread.
         """
         if num_simulations <= 1:
-            return [node.simulate()]
+            val, _ = node.simulate()
+            return [val]
         # Usually we don't need virtual loss here, selection is single-threaded
+        # We need a wrapper to unpack tuple for list comp comprehension if using map/comp
+        # Or just use a loop
+        
+        def run_sim():
+            val, _ = node.simulate()
+            return val
+
         with ThreadPoolExecutor(max_workers=min(num_simulations, self.num_workers)) as pool:
-            futures = [pool.submit(node.simulate) for _ in range(num_simulations)]
+            futures = [pool.submit(run_sim) for _ in range(num_simulations)]
             return [f.result() for f in futures]
 
     def _simulate_child_parallel(self, node, num_simulations):

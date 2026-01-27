@@ -146,7 +146,7 @@ def simulate_with_symmetry_logic_nb(state, n, pts_upper_bound, op_codes):
             
         total_valid = np.sum(valid_moves)
         
-    return get_value_nb(current_state, pts_upper_bound)
+    return get_value_nb(current_state, pts_upper_bound), current_state
 
 
 class N3il_with_symmetry_and_symmetric_actions(N3il_with_symmetry):

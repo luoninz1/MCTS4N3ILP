@@ -9,8 +9,8 @@ from src.algos import evaluate, MCTS
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=30, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=31, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=20, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=21, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
     args_cli = parser.parse_args()
@@ -55,6 +55,7 @@ if __name__ == "__main__":
             args = {
                 'environment': 'N3il_with_symmetry_and_symmetric_actions',  # Specify the environment
                 'algorithm': 'MCTS_Tree_Reuse',
+                'save_optimal_terminal_state': True,  # Save optimal terminal states found
                 'symmetric_action': 'rotation_90_then_rotation_180',  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': False,  # Enable node compression

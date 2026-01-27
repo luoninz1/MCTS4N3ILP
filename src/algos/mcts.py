@@ -30,6 +30,7 @@ from pyvis.network import Network
 import psutil
 import os
 import warnings
+import uuid
 
 from src.rewards.n3il_rewards import get_value_nb
 
@@ -489,7 +490,8 @@ class Node:
 
     def simulate(self):
         tmp = self.state.copy()
-        return self.game.simulate(tmp)
+        value, terminal_state = self.game.simulate(tmp)
+        return value, terminal_state
 
     def backpropagate(self, value):
         with self.lock:
@@ -708,14 +710,17 @@ class Node_Compressed:
         # Unpack to 2D array; simulation mutates a copy
         tmp = self.state.copy()
         if self.args.get("simulate_with_priority", False):
-            return simulate_with_priority_nb(tmp, # Priority function has been deleted in this version
+            # Use externally defined priority simulation function
+            value, terminal_state = simulate_with_priority_nb(tmp, 
                                             self.game.row_count,
                                             self.game.column_count,
                                             self.game.pts_upper_bound,
                                             self.game.priority_grid,
                                             self.args['TopN'])
+            return value, terminal_state
         else:
-            return self.game.simulate(tmp)
+            value, terminal_state = self.game.simulate(tmp)
+            return value, terminal_state
 
     def backpropagate(self, value):
         with self.lock:
@@ -737,6 +742,43 @@ class MCTS:
         self.args = args
         self.snapshots = []  # Store tree snapshots for multi-snapshot viewing
         self.trial_id = None  # Will be set when starting a new trial
+        
+        # Storage for optimal terminal states
+        self.optimal_terminal_states = [] 
+        self.optimal_value = -float('inf')
+        self.optimal_states_lock = threading.Lock()
+
+    def update_optimal_states(self, value, state):
+        """
+        Thread-safe update of optimal terminal states.
+        """
+        # If tracking is not enabled, do nothing (or do it always? user said enabled by args 'save_optimal_terminal_state')
+        # Checking logic inside here or caller?
+        # Caller does not check args easily in Node.simulate, but MCTS instance has args.
+        if not self.args.get('save_optimal_terminal_state', False):
+            return
+
+        with self.optimal_states_lock:
+            if value > self.optimal_value:
+                self.optimal_value = value
+                self.optimal_terminal_states = [{
+                    'state': state.copy(),
+                    'timestamp': time.time(),
+                    'id': uuid.uuid4().hex
+                }]
+            elif value == self.optimal_value:
+                # Check for duplicates by exact state match
+                is_new = True
+                for existing in self.optimal_terminal_states:
+                    if np.array_equal(existing['state'], state):
+                        is_new = False
+                        break
+                if is_new:
+                    self.optimal_terminal_states.append({
+                        'state': state.copy(),
+                        'timestamp': time.time(),
+                        'id': uuid.uuid4().hex
+                    })
 
     def _state_to_image_base64(self, state):
         """
@@ -1625,10 +1667,12 @@ class MCTS:
 
                 if not is_terminal:
                     node = node.expand()
-                    value = node.simulate()
+                    value, terminal_state = node.simulate()
+                    self.update_optimal_states(value, terminal_state)
             else:
                 node = node.expand()
-                value = node.simulate()
+                value, terminal_state = node.simulate()
+                self.update_optimal_states(value, terminal_state)
 
             node.backpropagate(value)
 
@@ -1728,10 +1772,12 @@ class MCTS_Tree_Reuse(MCTS):
 
                     if not is_terminal:
                         node = node.expand()
-                        value = node.simulate()
+                        value, terminal_state = node.simulate()
+                        self.update_optimal_states(value, terminal_state)
                 else:
                     node = node.expand()
-                    value = node.simulate()
+                    value, terminal_state = node.simulate()
+                    self.update_optimal_states(value, terminal_state)
 
                 node.backpropagate(value)
 

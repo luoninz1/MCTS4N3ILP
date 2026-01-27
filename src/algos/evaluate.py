@@ -5,9 +5,13 @@ import warnings
 import os
 import re
 
+import datetime
+
 from src.envs import N3il, N3il_with_symmetry, N3il_with_symmetry_and_symmetric_actions, supnorm_priority, supnorm_priority_array
 from src.utils.symmetry import get_d4_orbit
 from src.algos import MCTS, MCTS_Tree_Reuse, ParallelMCTS, LeafChildParallelMCTS, MCGS
+
+import matplotlib.pyplot as plt
 
 def set_seeds(seed):
     """Set random seeds for reproducibility across all random number generators."""
@@ -46,6 +50,94 @@ def select_outermost_with_tiebreaker(mcts_probs, n):
     chosen_pos = outermost_positions[np.random.choice(len(outermost_positions))]
     action = chosen_pos[0] * n + chosen_pos[1]
     return action
+
+def _save_optimal_terminal_states(args, mcts, n3il):
+    """
+    Save unique optimal terminal states found during MCTS to disk.
+    Dedups them, saves .npy and .png (with grid lines), and returns metadata.
+    """
+    if not args.get('save_optimal_terminal_state', False) or not hasattr(mcts, 'optimal_terminal_states'):
+        return None, None
+
+    # Deduplicate based on state content
+    unique_states = {}
+    for item in mcts.optimal_terminal_states:
+        key = tuple(item['state'].flatten().astype(bool))
+        unique_states[key] = item
+    
+    print(f"Saving {len(unique_states)} unique optimal terminal states with value {mcts.optimal_value}...")
+    
+    # Setup directory
+    if hasattr(n3il, '_display_folder'):
+        base_folder = n3il._display_folder
+    else:
+        folder_name = n3il.session_name
+        base_dir = args.get('figure_dir', 'figures')
+        base_folder = os.path.join(base_dir, folder_name)
+
+    opt_dir = os.path.join(base_folder, "optimal_terminal_state")
+    os.makedirs(opt_dir, exist_ok=True)
+    
+    saved_filenames = []
+    optimal_points_val = None
+    
+    rows, cols = n3il.row_count, n3il.column_count
+    # Marker size logic (copied scale factor from display_state)
+    marker_size = 50000.0 / (rows * cols)
+    grid_line_width = 2.0 / max(rows, cols)
+
+    for item in unique_states.values():
+        state_arr = item['state']
+        pts_count = np.sum(state_arr)
+        
+        if optimal_points_val is None:
+            optimal_points_val = pts_count
+        else:
+            optimal_points_val = max(optimal_points_val, pts_count)
+
+        timestamp_str = datetime.datetime.fromtimestamp(item['timestamp']).strftime("%Y%m%d_%H%M%S")
+        item_id = item['id'][:8]
+        
+        filename_base = f"opt_pts{int(pts_count)}_{timestamp_str}_{item_id}"
+        npy_path = os.path.join(opt_dir, f"{filename_base}.npy")
+        png_path = os.path.join(opt_dir, f"{filename_base}.png")
+        
+        # Save .npy
+        np.save(npy_path, state_arr)
+        saved_filenames.append(filename_base)
+        
+        # Save Image
+        try:
+            plt.figure(figsize=(10, 10))
+            ax = plt.gca()
+            
+            # plot placed points
+            y_idx, x_idx = np.nonzero(state_arr)
+            y_disp = rows - 1 - y_idx
+            ax.scatter(x_idx, y_disp, s=marker_size, c='blue', linewidths=0.5)
+
+            # draw grid lines
+            ax.set_xticks(np.arange(-0.5, cols, 1))
+            ax.set_yticks(np.arange(-0.5, rows, 1))
+            ax.grid(True, which='major', color='gray', linestyle='-', linewidth=grid_line_width)
+            
+            # Hide labels but keep ticks for grid
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            
+            ax.set_xlim(-0.5, cols - 0.5)
+            ax.set_ylim(-0.5, rows - 0.5)
+            ax.set_aspect('equal')
+            
+            plt.title(f"Optimal Terminal State: {int(pts_count)} Points\nID: {item_id}, Time: {timestamp_str}")
+            plt.tight_layout()
+            plt.savefig(png_path, bbox_inches='tight')
+            plt.close()
+        except Exception as e:
+            print(f"Error saving image for optimal state: {e}")
+
+    optimal_files_str = "|".join(saved_filenames)
+    return optimal_files_str, optimal_points_val
 
 def evaluate(args):
     # Set random seeds for reproducibility at the start of evaluation
@@ -187,6 +279,15 @@ def evaluate(args):
             n3il.display_state(state, mcts_probs)
             end = time.time()
             print(f"Time: {end - start:.6f} sec")
+
+            # Save optimal states and get metadata
+            optimal_files_str, optimal_points_val = _save_optimal_terminal_states(args, mcts, n3il)
+            
+            # Post-save arg injection for record_to_table
+            if optimal_files_str:
+                n3il.args['optimal_terminal_state_files'] = optimal_files_str
+            if optimal_points_val is not None:
+                n3il.args['optimal_number_of_points_from_terminal_state_saving'] = optimal_points_val
             
             # Record results to table
             n3il.record_to_table(
@@ -195,8 +296,6 @@ def evaluate(args):
                 end_time=end,
                 time_used=end - start
             )
-            
-            # Save tree visualization snapshots if enabled
             if args.get('tree_visualization', False) and hasattr(mcts, 'snapshots') and mcts.snapshots:
                 print(f"Collected {len(mcts.snapshots)} tree snapshots for this trial")
                 print(f"Total global snapshots so far: {len(MCTS.global_trial_data)}")

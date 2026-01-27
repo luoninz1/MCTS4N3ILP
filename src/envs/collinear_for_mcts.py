@@ -719,7 +719,7 @@ def simulate_nb(state, row_count, column_count, pts_upper_bound):
         total_valid = np.sum(valid_moves)
 
     # Compute and return the final value
-    return get_value_nb(state, pts_upper_bound)
+    return get_value_nb(state, pts_upper_bound), state
 
 @njit(cache=True, nogil=True)
 def filter_top_priority_moves(valid_moves, priority_grid, row_count, column_count, top_N=1):
@@ -835,7 +835,7 @@ def simulate_with_priority_nb(state, row_count, column_count, pts_upper_bound, p
         )
         total_valid = np.sum(valid_moves)
 
-    return get_value_nb(state, pts_upper_bound)
+    return get_value_nb(state, pts_upper_bound), state
 
 # This is not gym-compatible, but serves as a base class for MCTS-like algorithms
 class N3il:
@@ -877,6 +877,14 @@ class N3il:
                 original_session_name = os.path.basename(os.path.dirname(os.path.normpath(cont_path)))
             
             self.session_name = f"{self.session_name}_continued_from_{original_session_name}"
+
+        # Create date-time folder once per instance
+        if not hasattr(self, '_display_folder'):
+            # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            folder_name = self.session_name
+            base_dir = self.args.get('figure_dir', 'figures')
+            self._display_folder = os.path.join(base_dir, folder_name)
+            os.makedirs(self._display_folder, exist_ok=True)
 
     def state_to_key(self, state):
         """Convert state to a hashable key for the node registry."""
@@ -977,14 +985,6 @@ class N3il:
         Marker sizes, font sizes, and grid line widths auto-adjust to the grid dimensions.
         """
         rows, cols = self.row_count, self.column_count
-
-        # Create date-time folder once per instance
-        if not hasattr(self, '_display_folder'):
-            # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            folder_name = self.session_name
-            base_dir = self.args.get('figure_dir', 'figures')
-            self._display_folder = os.path.join(base_dir, folder_name)
-            os.makedirs(self._display_folder, exist_ok=True)
 
         # keep a fixed figure size
         plt.figure(figsize=(12, 10))
