@@ -1,14 +1,16 @@
 import sys
 import os
 import argparse
+import cProfile
+import pstats
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.algos import evaluate, MCTS
 
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=40, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=41, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=30, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=31, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
     args_cli = parser.parse_args()
@@ -18,6 +20,13 @@ if __name__ == "__main__":
 
     # Clear any previous global data before starting new experiments
     MCTS.clear_global_data()
+
+    # Initialize and enable the profiler
+    print("\n" + "="*60)
+    print("STARTING PROFILING")
+    print("="*60)
+    profiler = cProfile.Profile()
+    profiler.enable()
 
     # Store results for all trials
     all_results = {}
@@ -48,11 +57,11 @@ if __name__ == "__main__":
                 'algorithm': 'MCTS_Tree_Reuse',
                 'symmetric_action': 'rotation_90_then_rotation_180',  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
-                'node_compression': True,  # Enable node compression
+                'node_compression': False,  # Enable node compression
                 'max_level_to_use_symmetry': 2*n,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
                 'C': 1.41,  # 1e-7 for n=20
-                'num_searches': 100*(n**2),  # Reduced for testing tree visualization
+                'num_searches': 10*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
                 'virtual_loss': 1.0,     # magnitude to subtract at reservation
                 'process_bar': True,
@@ -65,7 +74,7 @@ if __name__ == "__main__":
                 'random_seed': i,  # Use the loop index as a seed for reproducibility
                 'tree_visualization': False,  # Enable tree visualization
                 'pause_at_each_step': False,  # Disable interactive prompts for automation
-                'continue_from_existing_state': 'tests/test_n3il_symmetric_action/figure/20260126_143028_40by40/no_three_in_line_40x40_pts56_MCTS_Tree_Reuse_20260126_143900.npy', # None: continuation; str: path to load
+                'continue_from_existing_state': None, # None: continuation; str: path to load
             }
             
             # Get the result from evaluate function
@@ -101,6 +110,20 @@ if __name__ == "__main__":
             optimal_count = freq.get(4, 0)
             print(f"  → Found optimal 4-point solution: {optimal_count}/{len(results)} times ({100*optimal_count/len(results):.1f}%)")
         print()
+
+    # Disable the profiler and print results
+    profiler.disable()
+    print("\n" + "="*60)
+    print("PROFILING REPORT")
+    print("="*60)
+    stats = pstats.Stats(profiler).sort_stats('cumulative')
+    stats.print_stats(30) # Print top 30 expensive calls
+    
+    # Save detailed stats to file
+    profile_output = "mcts_profiling.prof"
+    stats.dump_stats(profile_output)
+    print(f"Detailed profiling data saved to '{profile_output}'")
+    print("You can inspect it using: snakeviz mcts_profiling.prof")
     
     # Generate comprehensive visualization after all trials
     print("\n" + "="*60)

@@ -905,7 +905,7 @@ class N3il:
         else:
             return valid_moves
 
-    def get_valid_moves_subset(self, parent_state, parent_valid_moves, action_taken):
+    def get_valid_moves_subset(self, parent_state, parent_valid_moves, action_taken, current_state=None):
         # Get all valid moves
         valid_moves = get_valid_moves_subset_nb(parent_state, parent_valid_moves, action_taken, self.row_count, self.column_count)
         # Only keep moves with the highest priority

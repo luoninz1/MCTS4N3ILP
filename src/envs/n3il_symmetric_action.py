@@ -11,9 +11,7 @@ from sympy import Rational, Integer
 from sympy.core.numbers import igcd
 
 from src.rewards.n3il_rewards import get_value_nb
-from src.envs.collinear_for_mcts import get_valid_moves_nb, get_valid_moves_subset_nb
-
-from src.envs import N3il_with_symmetry
+from src.envs.collinear_for_mcts import get_valid_moves_nb, get_valid_moves_subset_nb, filter_top_priority_moves, N3il_with_symmetry
 from src.utils.symmetry import get_d4_orbit
 
 # Constants
@@ -80,9 +78,9 @@ def get_next_state_with_symmetry_logic_nb(state, action, n, op_codes):
     # though expensive for just one step, it ensures correctness of the fallback check.
     current_mask = get_valid_moves_nb(state, n, n)
     
-    # If even the primary action is invalid (shouldn't happen in valid MCTS), return as is
+    # If the primary action is invalid (shouldn't happen in valid MCTS), raise error
     if current_mask[action] == 0:
-        return state.copy()
+        raise ValueError("Invalid action in get_next_state: action is strictly invalid in current mask.")
 
     temp_state = state.copy()
     temp_mask = current_mask.copy()
@@ -183,3 +181,44 @@ class N3il_with_symmetry_and_symmetric_actions(N3il_with_symmetry):
     def simulate(self, state):
         s_arr = np.array(state, dtype=np.int64).reshape(self.row_count, self.column_count)
         return simulate_with_symmetry_logic_nb(s_arr, self.row_count, self.pts_upper_bound, self.op_codes)
+
+    def get_valid_moves_subset(self, parent_state, parent_valid_moves, action_taken, current_state):
+        """
+        Calculate valid moves for the current state given the parent state and valid moves.
+        This handles the symmetric batch action case where multiple points might have been added.
+        """
+        # Calculate the difference to find all points added
+        diff = current_state - parent_state
+        added_indices = np.argwhere(diff == 1)
+        
+        # Start with the parent's valid moves
+        valid_moves = parent_valid_moves.copy()
+        temp_state = parent_state.copy()
+        
+        # Apply updates for each added point sequentially
+        for idx in added_indices:
+            r, c = idx
+            action = r * self.column_count + c
+            
+            # Update valid moves subset based on this action
+            valid_moves = get_valid_moves_subset_nb(
+                temp_state, 
+                valid_moves, 
+                action, 
+                self.row_count, 
+                self.column_count
+            )
+            
+            # Update temp state to reflect this added point for the next iteration
+            temp_state[r, c] = 1
+            
+        # Only keep moves with the highest priority if priority grid is used
+        if self.priority_grid is not None:
+            return filter_top_priority_moves(
+                valid_moves, 
+                self.priority_grid, 
+                self.row_count, 
+                self.column_count, 
+                top_N=self.args['TopN'])
+        else:
+            return valid_moves

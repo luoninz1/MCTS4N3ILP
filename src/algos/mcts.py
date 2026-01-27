@@ -411,13 +411,13 @@ class Node:
             if (self.level <= game.max_level_to_use_symmetry and 
                 hasattr(game, 'get_valid_moves_subset_with_symmetry')):
                 self.action_space = game.get_valid_moves_subset(
-                    parent.state, parent.action_space, self.action_taken)
+                    parent.state, parent.action_space, self.action_taken, current_state=state)
                 self.valid_moves = game.filter_valid_moves_by_symmetry(
                     self.action_space, state
                 ).copy()
             else:
                 self.valid_moves = game.get_valid_moves_subset(
-                    parent.state, parent.action_space, self.action_taken)
+                    parent.state, parent.action_space, self.action_taken, current_state=state)
                 self.action_space = self.valid_moves.copy()
         
         # Ensure action_space is immutable
@@ -596,10 +596,10 @@ class Node_Compressed:
             parent_action_space = parent.action_space
             if (self.level <= game.max_level_to_use_symmetry and 
                 hasattr(game, 'get_valid_moves_subset_with_symmetry')):
-                action_space = game.get_valid_moves_subset(parent_state, parent_action_space, self.action_taken)
+                action_space = game.get_valid_moves_subset(parent_state, parent_action_space, self.action_taken, current_state=state)
                 valid_moves  = game.filter_valid_moves_by_symmetry(action_space, self.state,).copy()  # self.state property unpacks
             else:
-                valid_moves  = game.get_valid_moves_subset(parent_state, parent_action_space, self.action_taken)
+                valid_moves  = game.get_valid_moves_subset(parent_state, parent_action_space, self.action_taken, current_state=state)
                 action_space = valid_moves.copy()
 
         # --- pack masks & discard large arrays ---
@@ -1708,30 +1708,32 @@ class MCTS_Tree_Reuse(MCTS):
         
         if remaining_searches < target_searches:
              print(f"Tree Reuse: Node has {current_visits}, running {remaining_searches} additional searches.", flush=True)
+        
+        if remaining_searches > 0:
 
-        if self.args['process_bar'] == True:
-            search_iterator = trange(remaining_searches, desc="MCTS Reuse", leave=False)
-        else:
-            search_iterator = range(remaining_searches)
+            if self.args['process_bar'] == True:
+                search_iterator = trange(remaining_searches, desc="MCTS Reuse", leave=False)
+            else:
+                search_iterator = range(remaining_searches)
 
-        for search in search_iterator:
-            node = root
+            for search in search_iterator:
+                node = root
 
-            # selection
-            while node.is_fully_expanded():
-                node = node.select(iter=search)
+                # selection
+                while node.is_fully_expanded():
+                    node = node.select(iter=search)
 
-            if node.action_taken is not None:
-                value, is_terminal = self.game.get_value_and_terminated(node.state, node.valid_moves)
+                if node.action_taken is not None:
+                    value, is_terminal = self.game.get_value_and_terminated(node.state, node.valid_moves)
 
-                if not is_terminal:
+                    if not is_terminal:
+                        node = node.expand()
+                        value = node.simulate()
+                else:
                     node = node.expand()
                     value = node.simulate()
-            else:
-                node = node.expand()
-                value = node.simulate()
 
-            node.backpropagate(value)
+                node.backpropagate(value)
 
         action_probs = np.zeros(self.game.action_size)
         for child in root.children:
