@@ -120,7 +120,7 @@ if __name__ == "__main__":
     stats.print_stats(30) # Print top 30 expensive calls
     
     # Save detailed stats to file
-    profile_output = "mcts_profiling.prof"
+    profile_output = "mcts_profiling_1.prof"
     stats.dump_stats(profile_output)
     print(f"Detailed profiling data saved to '{profile_output}'")
     print("You can inspect it using: snakeviz mcts_profiling.prof")

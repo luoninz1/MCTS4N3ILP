@@ -481,7 +481,7 @@ class Node:
             self.is_full = True
 
         child_state = self.state.copy()
-        child_state = self.game.get_next_state(child_state, action)
+        child_state = self.game.get_next_state(child_state, action, action_space_of_state=self.action_space)
 
         child = Node(self.game, self.args, child_state, self, action)
         self.children.append(child)
@@ -697,7 +697,7 @@ class Node_Compressed:
 
         # Build child state as in original (copy, then get_next_state)
         child_state = self.state.copy()  # property: unpack current state
-        child_state = self.game.get_next_state(child_state, action)
+        child_state = self.game.get_next_state(child_state, action, action_space_of_state=self.action_space)
 
         # Create child node (compressed)
         child = Node_Compressed(self.game, self.args, child_state, self, action)

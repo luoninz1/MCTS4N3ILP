@@ -885,7 +885,7 @@ class N3il:
     def get_initial_state(self):
         return np.zeros((self.row_count, self.column_count), np.uint8)
 
-    def get_next_state(self, state, action):
+    def get_next_state(self, state, action, action_space_of_state=None):
         row = action // self.column_count
         col = action % self.column_count
         state[row, col] = 1

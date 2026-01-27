@@ -71,12 +71,12 @@ def get_d4_orbit_nb(action, n, op_codes):
     return orbit[:count]
 
 @njit(cache=True)
-def get_next_state_with_symmetry_logic_nb(state, action, n, op_codes):
+def get_next_state_with_symmetry_logic_nb(state, action, n, op_codes, current_mask):
     orbit = get_d4_orbit_nb(action, n, op_codes)
     
     # We must start with fresh valid moves calc to be safe, 
     # though expensive for just one step, it ensures correctness of the fallback check.
-    current_mask = get_valid_moves_nb(state, n, n)
+    # current_mask = get_valid_moves_nb(state, n, n) # Now passed as argument
     
     # If the primary action is invalid (shouldn't happen in valid MCTS), raise error
     if current_mask[action] == 0:
@@ -173,9 +173,11 @@ class N3il_with_symmetry_and_symmetric_actions(N3il_with_symmetry):
             for (r, c) in get_d4_orbit(action, self.row_count, self.symmetric_action_mode)
         }
         
-    def get_next_state(self, state, action):
+    def get_next_state(self, state, action, action_space_of_state=None):
         s_arr = np.array(state, dtype=np.int64).reshape(self.row_count, self.column_count)
-        new_state = get_next_state_with_symmetry_logic_nb(s_arr, action, self.row_count, self.op_codes)
+        if action_space_of_state is None:
+            action_space_of_state = get_valid_moves_nb(s_arr, self.row_count, self.column_count)
+        new_state = get_next_state_with_symmetry_logic_nb(s_arr, action, self.row_count, self.op_codes, action_space_of_state)
         return new_state
 
     def simulate(self, state):
