@@ -7,7 +7,9 @@ import re
 
 import datetime
 
-from src.envs import N3il, N3il_with_symmetry, N3il_with_symmetry_and_symmetric_actions, supnorm_priority, supnorm_priority_array
+from src.envs import N3il, N3il_with_FVAS, N3il_with_symmetry
+from src.envs import N3il_with_symmetry_and_symmetric_actions, N3il_with_SVAS_wo_inc
+from src.envs import supnorm_priority, supnorm_priority_array
 from src.utils.symmetry import get_d4_orbit
 from src.algos import MCTS, MCTS_Tree_Reuse, ParallelMCTS, LeafChildParallelMCTS, MCGS
 
@@ -159,6 +161,10 @@ def evaluate(args):
         n3il = N3il(grid_size=(args['n'], args['n']), args=args, priority_grid=priority_grid_arr)
     elif args['environment'] == 'N3il_with_symmetry_and_symmetric_actions':
         n3il = N3il_with_symmetry_and_symmetric_actions(grid_size=(args['n'], args['n']), args=args, priority_grid=priority_grid_arr)
+    elif args['environment'] == 'N3il_with_FVAS':
+        n3il = N3il_with_FVAS(grid_size=(args['n'], args['n']), args=args, priority_grid=None)
+    elif args['environment'] == 'N3il_with_SVAS_wo_inc':
+        n3il = N3il_with_SVAS_wo_inc(grid_size=(args['n'], args['n']), args=args, priority_grid=None)
     else:
         raise ValueError(f"Unknown environment: {args['environment']}")
 
@@ -262,6 +268,8 @@ def evaluate(args):
     else:
         state = n3il.get_initial_state()
         num_of_points = 0
+    
+    last_action = None
 
     while True:
         if args['display_state'] == True:
@@ -273,6 +281,11 @@ def evaluate(args):
         value, is_terminal = n3il.get_value_and_terminated(state, valid_moves)
 
         if is_terminal:
+            if args['environment'] == 'N3il_with_FVAS':
+                if last_action is not None:
+                    r, c = divmod(last_action, n)
+                    state[r, c] = 0
+                    num_of_points -= 1
             print("*******************************************************************")
             print(f"Trial Terminated with {num_of_points} points. Final valid configuration:")
             print(state)
@@ -336,6 +349,7 @@ def evaluate(args):
 
         else:
             # Apply action
+            last_action = action
             num_of_points += 1
             state = n3il.get_next_state(state, action)
     

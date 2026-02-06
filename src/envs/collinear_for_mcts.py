@@ -862,7 +862,7 @@ class N3il:
         self.priority_grid = priority_grid  # Store priority grid
         
         # Create session name with timestamp and grid size
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f") # Include microseconds for better uniqueness
         self.session_name = f"{timestamp}_{self.row_count}by{self.column_count}"
         
         # If continuing from existing state, update session name

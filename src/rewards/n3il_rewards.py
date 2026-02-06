@@ -12,6 +12,16 @@ def get_value_exp_norm_nb(state: NDArray, pts_upper_bound: int, coeff: float = 2
     return np.exp(coeff * ((total-n) / n))  # Range: [e^-2, 1] ≈ [0.135, 1]
 
 
+@njit(cache=True, nogil=True)
+def get_value_for_FVAS_nb(state, pts_upper_bound):
+    total = np.sum(state) - 1
+    n = pts_upper_bound/2
+
+    # Exponential Growth
+
+    return np.exp(2.0 * ((total-n) / n))  # Range: [e^-2, 1] ≈ [0.135, 1]
+
+
 ## Default rewarding function
 ## Remember Also Adjust get_value_nb in collinear_for_mcts.py !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 @njit(cache=True, nogil=True)
