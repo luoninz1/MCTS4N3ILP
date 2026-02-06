@@ -202,3 +202,4 @@ Thumbs.db
 
 # Planning docs (kept local, not versioned)
 docs/refactor_plan.md
+tests/ablation_study/test_ablation_local.sh
