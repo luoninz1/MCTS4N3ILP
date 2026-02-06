@@ -16,6 +16,8 @@ if __name__ == "__main__":
     parser.add_argument("--algorithm", type=str, default="MCTS", help="Algorithm name")
     parser.add_argument("--max_symmetry_level", type=int, default=None, help="Maximum symmetry level to use (e.g., 2 means use symmetry for first 2 levels, zero indexed)")
     parser.add_argument("--save_optimal_terminal_state", type=bool, default=False, help="Whether to save the optimal terminal state found during evaluation")
+    parser.add_argument("--comment", type=str, default=None, help="Additional comment (e.g. Algorithm variant in ablation study)")
+    parser.add_argument("--random_seed", type=int, default=None, help="Random seed for reproducibility")
     args_cli = parser.parse_args()
 
     # Generate list of n values
@@ -48,26 +50,27 @@ if __name__ == "__main__":
             """
 
             args = {
+                'comment': args_cli.comment,
                 'environment': args_cli.environment,  # Specify the environment
                 'algorithm': args_cli.algorithm,
                 'save_optimal_terminal_state': args_cli.save_optimal_terminal_state,  # Save optimal terminal states found
                 'symmetric_action': args_cli.symmetric_action,  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': True,  # Enable node compression
-                'max_level_to_use_symmetry': args_cli.max_symmetry_level if args_cli.max_symmetry_level is not None else (2*n if args_cli.environment == 'N3il_with_symmetry_and_symmetric_actions' else 0),  # Use symmetry for first 2 levels (helps find compact solutions)
+                'max_level_to_use_symmetry': args_cli.max_symmetry_level if args_cli.max_symmetry_level is not None else (2*n if args_cli.environment == 'N3il_with_symmetry_and_symmetric_actions' else -1),  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
                 'C': 1.41,  # sqrt(2)
                 'num_searches': 10*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
                 'virtual_loss': 1.0,     # magnitude to subtract at reservation
-                'process_bar': True,
+                'process_bar': False,
                 'display_state': True,
                 'logging_mode': True,  # Enable logging mode to get return value
                 'TopN': n,  # Without Priority
                 "simulate_with_priority": False,
                 'table_dir': os.path.dirname(__file__),  # Directory to save tables
                 'figure_dir': os.path.join(os.path.dirname(__file__), 'figure'),  # Directory to save figures
-                'random_seed': i,  # Use the loop index as a seed for reproducibility
+                'random_seed': args_cli.random_seed if args_cli.random_seed is not None else i,  # Use the loop index as a seed for reproducibility
                 'tree_visualization': False,  # Enable tree visualization
                 'pause_at_each_step': False,  # Disable interactive prompts for automation
                 'continue_from_existing_state': None, # None: continuation; str: path to load
