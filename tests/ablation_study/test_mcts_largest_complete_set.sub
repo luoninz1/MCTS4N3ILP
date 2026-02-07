@@ -32,6 +32,7 @@ sym_action="$5"
 max_sym_level="$6"
 save_opt="$7"
 comment="$8"
+algo="$9"
 
 # Update job name for easier monitoring: Variant_nGrid_tSeed
 # e.g., M0_n30_t5
@@ -45,6 +46,7 @@ echo "Environment      : ${env}"
 echo "Symmetric Action : ${sym_action}"
 echo "Max Sym Level    : ${max_sym_level}"
 echo "Save Optimal     : ${save_opt}"
+echo "Algorithm        : ${algo}"
 echo "Comment          : ${comment}"
 echo "==================================="
 
@@ -60,6 +62,10 @@ cmd="python ablation.py \
     --comment \"${comment}\""
 
 # Conditionally add arguments if they are not "None"
+if [ "${algo}" != "" ] && [ "${algo}" != "None" ]; then
+    cmd="${cmd} --algorithm ${algo}"
+fi
+
 if [ "${sym_action}" != "None" ]; then
     cmd="${cmd} --symmetric_action ${sym_action}"
 fi
