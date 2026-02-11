@@ -11,7 +11,12 @@ def _are_collinear_nb(c1, r1, c2, r2, c3, r3):
 
 @njit(cache=True)
 def invalidate_line_nb(mask, r0, c0, dr, dc, n, m):
-    # Pre-simplify dr, dc
+    """
+    Invalidate all points on the line defined by point (r0, c0) and direction (dr, dc).
+    This occurs when N points are already collinear; we mask the entire line to prevent N+1 points.
+    """
+    # Pre-simplify dr, dc to their smallest integer components using GCD.
+    # This ensures we visit every integer coordinate on the line.
     a, b = abs(dr), abs(dc)
     while b:
         a, b = b, a % b
@@ -20,14 +25,16 @@ def invalidate_line_nb(mask, r0, c0, dr, dc, n, m):
     dr //= common
     dc //= common
     
-    # Forward
+    # Traverse Forward: Start from (r0, c0) and move in direction (dr, dc)
+    # Mark all points on the line as invalid (0) in the mask until grid boundary.
     curr_r, curr_c = r0, c0
     while 0 <= curr_r < n and 0 <= curr_c < m:
         mask[curr_r * m + curr_c] = 0
         curr_r += dr
         curr_c += dc
         
-    # Backward
+    # Traverse Backward: Start from (r0, c0) - (dr, dc) and move in opposite direction
+    # Mark all points on the line as invalid (0) in the mask until grid boundary.
     curr_r, curr_c = r0 - dr, c0 - dc
     while 0 <= curr_r < n and 0 <= curr_c < m:
         mask[curr_r * m + curr_c] = 0
