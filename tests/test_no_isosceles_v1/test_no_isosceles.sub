@@ -7,6 +7,7 @@
 #SBATCH --ntasks=1            ## (-n) number of processes to be launched
 #SBATCH -c 1                 ## number of cores
 #SBATCH --mem=6G           ## placeholder memory for dynamic allocation
+#SBATCH --tmp=10G          ## requesting 10 GB local scratch
 #SBATCH --time 7-00:00:00     ## time limit (7 days)
 #SBATCH --error=logs/slurm-%J.err  ## error log file
 #SBATCH --output=logs/slurm-%J.out ## output log file
@@ -69,6 +70,12 @@ scontrol show job $SLURM_JOB_ID | awk '
 }'
 echo "=========================================================="
 
+# Create a unique scratch directory for this job
+JOB_SCRATCH="$TMPDIR/job_${SLURM_JOB_ID}"
+mkdir -p "$JOB_SCRATCH"
+
+echo "Using scratch directory: $JOB_SCRATCH"
+
 python no_isosceles_test.py \
     --start "${start}" \
     --end "${end}" \
@@ -77,4 +84,37 @@ python no_isosceles_test.py \
     --symmetric_action "${symmetric_action}" \
     --environment "${environment}" \
     --algorithm "MCTS_Tree_Reuse" \
-    > logs/test_no_isosceles_${env_short}_${symmetric_action}_n_${start}.log
+    --output_dir "$JOB_SCRATCH" \
+    > logs/test_n3il_${env_short}_${symmetric_action}_n_${start}.log
+
+# Copy results back to permanent storage
+# Only copy useful results, avoiding massive intermediate files if possible
+# But here we copy everything as requested, but from scratch.
+# We rename the common results file to avoid overwriting if using a shared folder later,
+# but currently the script writes to 'experiment_results.csv'.
+# To prevent collisions when multiple jobs run, we rename it with JOB_ID.
+
+echo "Copying results back from scratch..."
+cp "$JOB_SCRATCH/experiment_results.csv" "experiment_results_${SLURM_JOB_ID}.csv" || echo "No results csv files found"
+
+# Copy figures if any
+if [ -d "$JOB_SCRATCH/figure" ]; then
+    mkdir -p figure
+    
+    # Method 1: Compress first (Recommended for large N to avoid inode limits on DFS)
+    tar -czf "points_${start}_figures_${SLURM_JOB_ID}.tar.gz" -C "$JOB_SCRATCH" figure
+    echo "Figures saved to points_${start}_figures_${SLURM_JOB_ID}.tar.gz"
+    
+    # Method 2: Optional - Unpack immediately into a specific folder?
+    # WARNING: If there are thousands of files, this might trigger the original "small writes" issue.
+    # Administrators usually prefer you keep them compressed on DFS and only extract what you need locally.
+    # However, if you really want them extracted on DFS to a specific folder:
+    
+    # TARGET_FIG_DIR="figure/job_${SLURM_JOB_ID}"
+    # mkdir -p "$TARGET_FIG_DIR"
+    # tar -xzf "points_${start}_figures_${SLURM_JOB_ID}.tar.gz" -C "$TARGET_FIG_DIR"
+    # echo "Figures extracted to $TARGET_FIG_DIR"
+fi
+
+# Clean up is handled by SLURM usually, but good practice
+rm -rf "$JOB_SCRATCH"

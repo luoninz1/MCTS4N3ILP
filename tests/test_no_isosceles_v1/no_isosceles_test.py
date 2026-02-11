@@ -18,10 +18,23 @@ if __name__ == "__main__":
     parser.add_argument("--reward", type=str, default="exp_growth", 
                         choices=["default", "exp_reverse", "exp_growth", "linear", "gaussian", "optimal_3x3"],
                         help="Reward function strategy to use")
+    parser.add_argument("--output_dir", type=str, default=None, help="Directory to save results (tables and figures). If None, uses current directory.")
     
     args_cli = parser.parse_args()
     print(f"Configuration: Setting Reward Strategy to '{args_cli.reward}'")
     set_reward_strategy(args_cli.reward)
+
+    # Determine output directories
+    if args_cli.output_dir:
+        table_dir = args_cli.output_dir
+        figure_dir = os.path.join(args_cli.output_dir, 'figure')
+    else:
+        table_dir = os.path.dirname(__file__)
+        figure_dir = os.path.join(os.path.dirname(__file__), 'figure')
+    
+    # Ensure directories exist
+    os.makedirs(table_dir, exist_ok=True)
+    os.makedirs(figure_dir, exist_ok=True)
 
     if args_cli.symmetric_action == "None":
         args_cli.symmetric_action = None # Convert string "None" to actual None for easier handling in code
@@ -74,8 +87,8 @@ if __name__ == "__main__":
                 'logging_mode': True,  # Enable logging mode to get return value
                 'TopN': n,  # Without Priority
                 "simulate_with_priority": False,
-                'table_dir': os.path.dirname(__file__),  # Directory to save tables
-                'figure_dir': os.path.join(os.path.dirname(__file__), 'figure'),  # Directory to save figures
+                'table_dir': table_dir,  # Directory to save tables
+                'figure_dir': figure_dir,  # Directory to save figures
                 'random_seed': i,  # Use the loop index as a seed for reproducibility
                 'tree_visualization': False,  # Enable tree visualization
                 'pause_at_each_step': False,  # Disable interactive prompts for automation
