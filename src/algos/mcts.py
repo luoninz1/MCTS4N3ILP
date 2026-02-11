@@ -716,7 +716,8 @@ class Node_Compressed:
         # Unpack to 2D array; simulation mutates a copy
         tmp = self.state.copy()
         if self.args.get("simulate_with_priority", False):
-            # Use externally defined priority simulation function
+            # priority is no longer supported in this version.
+            raise NotImplementedError("simulate_with_priority is not supported in Node_Compressed version.")
             value, terminal_state = simulate_with_priority_nb(tmp, 
                                             self.game.row_count,
                                             self.game.column_count,
