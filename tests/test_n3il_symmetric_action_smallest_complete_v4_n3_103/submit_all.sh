@@ -19,6 +19,7 @@ for i in {3..12}; do
   
   echo "Submitting Batch 1: start=${start}, env=${env}"
   sbatch -c 1 --mem=6G test_mcts_smallest_complete_set.sub "${start}" "${end}" "${step}" "${repeat}" "${sym_action}" "${env}"
+  sleep 0.5
 done
 
 
@@ -39,5 +40,6 @@ for sa in "${actions[@]}"; do
     
     echo "Submitting Batch 2: start=${start}, action=${sa}, env=${env}"
     sbatch -c 1 --mem=6G test_mcts_smallest_complete_set.sub "${start}" "${end}" "${step}" "${repeat}" "${sa}" "${env}"
+    sleep 0.5
   done
 done
