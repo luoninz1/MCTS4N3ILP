@@ -1735,10 +1735,14 @@ class MCTS_Tree_Reuse(MCTS):
         # Try to find if we can reuse the current tree
         if self.current_root is not None:
              # Check children of current root to see if we moved to one of them
+             matching_children = []
              for child in self.current_root.children:
                  if np.array_equal(child.state, state):
-                     root = child
-                     break
+                     matching_children.append(child)
+                     
+             if matching_children:
+                 # If duplicates exist (due to symmetry/transpositions), pick the most visited one
+                 root = max(matching_children, key=lambda node: node.visit_count)
              
              # Also check if the state is the current root itself (e.g. searching same state again)
              if root is None and np.array_equal(self.current_root.state, state):
