@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1            ## (-n) number of processes to be launched
 #SBATCH -c 1                 ## number of cores
 #SBATCH --mem=6G           ## placeholder memory for dynamic allocation
-#SBATCH --time 14-00:00:00     ## time limit (14 days)
+#SBATCH --time 7-00:00:00     ## time limit (7 days)
 #SBATCH --error=logs/slurm-%J.err  ## error log file
 #SBATCH --output=logs/slurm-%J.out ## output log file
 #SBATCH --mail-type=fail,end
