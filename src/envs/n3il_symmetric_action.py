@@ -152,7 +152,7 @@ def simulate_with_symmetry_logic_nb(state, n, pts_upper_bound, op_codes):
 class N3il_with_symmetry_and_symmetric_actions(N3il_with_symmetry):
     def __init__(self, grid_size, args, priority_grid=None):
         super().__init__(grid_size, args, priority_grid)
-        if 'symmetric_action' in args:
+        if args.get('symmetric_action'):
             self.symmetric_action_mode = args['symmetric_action']
             parts = self.symmetric_action_mode.split('_then_')
             ops = []
@@ -163,7 +163,8 @@ class N3il_with_symmetry_and_symmetric_actions(N3il_with_symmetry):
                     raise ValueError(f"Unknown symmetry operation: {p}")
             self.op_codes = np.array(ops, dtype=np.int64)
         else:
-            raise ValueError("symmetric_action parameter is required.")
+            self.symmetric_action_mode = None
+            self.op_codes = np.array([], dtype=np.int64)
 
     def get_symmetric_actions(self, action):
         if not self.symmetric_action_mode:
