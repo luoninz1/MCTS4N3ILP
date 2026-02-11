@@ -20,7 +20,7 @@ from typing import Tuple, List, Set, Callable, NamedTuple, Union, Optional, Iter
 from multiprocessing import Pool
 from sympy import Rational, Integer
 from sympy.core.numbers import igcd
-from src.envs import N3il, N3il_with_symmetry, N3il_with_symmetry_and_symmetric_actions, supnorm_priority, supnorm_priority_array
+from src.envs import N3il, N3il_with_symmetry, N3il_with_symmetry_and_symmetric_actions, supnorm_priority, supnorm_priority_array, N4il
 from src.utils.symmetry import get_d4_orbit
 
 import io
@@ -772,7 +772,7 @@ class MCTS:
                     'timestamp': time.time(),
                     'id': uuid.uuid4().hex
                 }]
-            elif value == self.optimal_value:
+            elif value == self.optimal_value and self.args.get('save_all_optimal_terminal_states', False):
                 # Check for duplicates by exact state match
                 is_new = True
                 for existing in self.optimal_terminal_states:

@@ -1,0 +1,80 @@
+#!/bin/bash
+
+#SBATCH --job-name=placeholder     ## job name
+#SBATCH -A NCKAPLAN_LAB     ## Class account to charge resources
+#SBATCH -p standard                ## partition name
+#SBATCH --nodes=1             ## (-N) number of nodes the job will use
+#SBATCH --ntasks=1            ## (-n) number of processes to be launched
+#SBATCH -c 1                 ## number of cores
+#SBATCH --mem=6G           ## placeholder memory for dynamic allocation
+#SBATCH --time 7-00:00:00     ## time limit (7 days)
+#SBATCH --error=logs/slurm-%J.err  ## error log file
+#SBATCH --output=logs/slurm-%J.out ## output log file
+#SBATCH --mail-type=fail,end
+#SBATCH --mail-user=luoninz1@uci.edu
+
+module load miniconda3/24.9.2
+source /opt/apps/miniconda3/24.9.2/etc/profile.d/conda.sh
+conda activate mcgs-env
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export NUMBA_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export NUMBA_THREADING_LAYER=omp
+
+# Set a unique Numba cache directory for each job to prevent race conditions/corruption
+# when multiple jobs try to compile and write to the same cache simultaneously.
+export NUMBA_CACHE_DIR="/tmp/numba_cache_$SLURM_JOB_ID"
+mkdir -p "$NUMBA_CACHE_DIR"
+
+# ===== Expected resources (derived from start) vs Actual resources (after sbatch override) =====
+# Fixed resources: 1 core / 6G
+start="$1"
+end="$2"
+step="$3"
+repeat="$4"
+symmetric_action="$5"
+environment="$6"
+
+# Create a shorter version of environment name for job name to avoid truncation
+# e.g., N3il_with_symmetry -> N3ilSym, N3il_with_symmetry_and_symmetric_actions -> N3ilSymAct
+if [[ "$environment" == *"and_symmetric_actions"* ]]; then
+    env_short="SymAct"
+elif [[ "$environment" == *"with_symmetry"* ]]; then
+    env_short="Sym"
+else
+    env_short="Env"
+fi
+
+# Dynamically update job name, include start and symmetric_action for identification
+scontrol update JobId=$SLURM_JOB_ID JobName="ni${start}_${env_short}_${symmetric_action}" >/dev/null 2>&1 || true
+
+echo "========== RESOURCE CHECK (JobID=$SLURM_JOB_ID) =========="
+echo "Start parameter        : ${start}"
+echo "End parameter          : ${end}"
+echo "Step parameter         : ${step}"
+echo "Repeat parameter       : ${repeat}"
+echo "Symmetric Action       : ${symmetric_action}"
+echo "Environment            : ${environment}"
+echo "Fixed Resources        : CPUs=1, MEM=6G"
+echo "SLURM_CPUS_PER_TASK    : ${SLURM_CPUS_PER_TASK:-N/A}"
+echo "SLURM_JOB_CPUS_PER_NODE: ${SLURM_JOB_CPUS_PER_NODE:-N/A}"
+echo "SLURM_MEM_PER_CPU      : ${SLURM_MEM_PER_CPU:-N/A}  (MB, if defined by site)"
+echo "SLURM_MEM_PER_NODE     : ${SLURM_MEM_PER_NODE:-N/A} (MB, if defined by site)"
+echo "--- scontrol show job (key fields) ---"
+scontrol show job $SLURM_JOB_ID | awk '
+/JobName=|Partition=|Ntasks=|NumCPUs=|TRES=|MinMemory/{
+  gsub(/\r/,""); print
+}'
+echo "=========================================================="
+
+python no_isosceles_test.py \
+    --start "${start}" \
+    --end "${end}" \
+    --step "${step}" \
+    --repeat "${repeat}" \
+    --symmetric_action "${symmetric_action}" \
+    --environment "${environment}" \
+    --algorithm "MCTS_Tree_Reuse" \
+    > logs/test_no_isosceles_${env_short}_${symmetric_action}_n_${start}.log

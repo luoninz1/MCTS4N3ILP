@@ -8,8 +8,8 @@ from src.rewards.n3il_rewards import set_reward_strategy
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=27, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=28, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=5, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=6, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
     parser.add_argument("--symmetric_action", type=str, default="None", help="Symmetric action mode (e.g., 'vertical_flip_then_horizontal_flip_then_diagonal_flip')")
@@ -59,6 +59,7 @@ if __name__ == "__main__":
                 'environment': args_cli.environment,  # Specify the environment
                 'algorithm': args_cli.algorithm,
                 'save_optimal_terminal_state': True,  # Save optimal terminal states found
+                'save_all_optimal_terminal_states': True if n < 31 else False,  # Save all optimal terminal states found for n < 31 (to avoid memory issues for larger n)
                 'symmetric_action': args_cli.symmetric_action,  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': True,  # Enable node compression

@@ -9,3 +9,4 @@ from .n3il_symmetric_action import N3il_with_symmetry_and_symmetric_actions
 from .n3il_FVAS import N3il_with_FVAS
 from .n3il_SVAS_wo_inc import N3il_with_SVAS_wo_inc
 from .no_isosceles import No_isosceles
+from .n4il import N4il
