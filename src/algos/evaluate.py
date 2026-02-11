@@ -68,7 +68,8 @@ def _save_optimal_terminal_states(args, mcts, n3il):
         key = tuple(item['state'].flatten().astype(bool))
         unique_states[key] = item
     
-    print(f"Saving {len(unique_states)} unique optimal terminal states with value {mcts.optimal_value}...")
+    points_count = int(np.sum(list(unique_states.values())[0]['state'])) if unique_states else 0
+    print(f"Saving {len(unique_states)} unique optimal terminal states with value {mcts.optimal_value} and {points_count} points...")
     
     # Setup directory
     if hasattr(n3il, '_display_folder'):
