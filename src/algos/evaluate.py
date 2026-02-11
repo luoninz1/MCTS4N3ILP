@@ -10,7 +10,7 @@ import datetime
 from src.envs import N3il, N3il_with_FVAS, N3il_with_symmetry
 from src.envs import N3il_with_symmetry_and_symmetric_actions, N3il_with_SVAS_wo_inc
 from src.envs import supnorm_priority, supnorm_priority_array
-from src.envs import No_isosceles, N4il
+from src.envs import No_isosceles, N4il, No_4_on_circle
 from src.utils.symmetry import get_d4_orbit
 from src.algos import MCTS, MCTS_Tree_Reuse, ParallelMCTS, LeafChildParallelMCTS, MCGS
 
@@ -171,6 +171,8 @@ def evaluate(args):
         n3il = No_isosceles(grid_size=(args['n'], args['n']), args=args, priority_grid=None)
     elif args['environment'] == 'N4il':
         n3il = N4il(grid_size=(args['n'], args['n']), args=args, priority_grid=None)
+    elif args['environment'] == 'No_4_on_circle':
+        n3il = No_4_on_circle(grid_size=(args['n'], args['n']), args=args, priority_grid=None)
     else:
         raise ValueError(f"Unknown environment: {args['environment']}")
 

@@ -9,10 +9,10 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
     parser.add_argument("--start", type=int, default=20, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=21, help="Ending value of n (exclusive)")
-    parser.add_argument("--step", type=int, default=1, help="Step size for n values")
+    parser.add_argument("--end", type=int, default=51, help="Ending value of n (exclusive)")
+    parser.add_argument("--step", type=int, default=5, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
-    parser.add_argument("--symmetric_action", type=str, default="None", help="Symmetric action mode (e.g., 'vertical_flip_then_horizontal_flip_then_diagonal_flip')")
+    parser.add_argument("--symmetric_action", type=str, default="rotation_90_then_rotation_180", help="Symmetric action mode (e.g., 'vertical_flip_then_horizontal_flip_then_diagonal_flip')")
     parser.add_argument("--environment", type=str, default="N4il", help="Environment name")
     parser.add_argument("--algorithm", type=str, default="MCTS_Tree_Reuse", help="Algorithm name")
     parser.add_argument("--reward", type=str, default="exp_growth", 
@@ -59,13 +59,13 @@ if __name__ == "__main__":
                 'environment': args_cli.environment,  # Specify the environment
                 'algorithm': args_cli.algorithm,
                 'save_optimal_terminal_state': True,  # Save optimal terminal states found
-                'save_all_optimal_terminal_states': True if n < 31 else False,  # Save all optimal terminal states found for n < 31 (to avoid memory issues for larger n)
+                'save_all_optimal_terminal_states': True if n < 11 else False,  # Save all optimal terminal states found for n < 31 (to avoid memory issues for larger n)
                 'symmetric_action': args_cli.symmetric_action,  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': True,  # Enable node compression
-                'max_level_to_use_symmetry': 2*n if args_cli.environment == 'N3il_with_symmetry_and_symmetric_actions' else 1,  # Use symmetry for first 2 levels (helps find compact solutions)
+                'max_level_to_use_symmetry': 2*n if args_cli.symmetric_action else 1,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
-                'C': 14.1,  # 10*sqrt(2)
+                'C': 1.41,  # sqrt(2)
                 'num_searches': 100*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
                 'virtual_loss': 1.0,     # magnitude to subtract at reservation

@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("--step", type=int, default=5, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
     parser.add_argument("--symmetric_action", type=str, default="None", help="Symmetric action mode (e.g., 'vertical_flip_then_horizontal_flip_then_diagonal_flip')")
-    parser.add_argument("--environment", type=str, default="No_isosceles", help="Environment name")
+    parser.add_argument("--environment", type=str, default="No_4_on_circle", help="Environment name")
     parser.add_argument("--algorithm", type=str, default="MCTS_Tree_Reuse", help="Algorithm name")
     parser.add_argument("--reward", type=str, default="exp_growth", 
                         choices=["default", "exp_reverse", "exp_growth", "linear", "gaussian", "optimal_3x3"],
@@ -63,7 +63,7 @@ if __name__ == "__main__":
                 'symmetric_action': args_cli.symmetric_action,  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': True,  # Enable node compression
-                'max_level_to_use_symmetry': 2*n if args_cli.environment == 'N3il_with_symmetry_and_symmetric_actions' else 1,  # Use symmetry for first 2 levels (helps find compact solutions)
+                'max_level_to_use_symmetry': 2*n if args_cli.symmetric_action else 1,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
                 'C': 1.41,  # sqrt(2)
                 'num_searches': 100*(n**2),  # Reduced for testing tree visualization
