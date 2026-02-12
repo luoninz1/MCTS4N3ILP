@@ -1074,9 +1074,6 @@ class N3il:
         workers = self.args.get('num_workers', 'N/A')
         
         title = f"{base_title}\nGrid: {rows}×{cols}, Points: {num_points}, Algorithm: {algorithm}, Searches: {num_searches}\nC: {C}, TopN: {topN}, Priority: {priority}, Workers: {workers}"
-        plt.title(title, fontsize=title_font_size, pad=20)
-        
-        plt.tight_layout()
         
         # Save the plot with timestamp, grid size, and number of points for unique filenames
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1088,6 +1085,9 @@ class N3il:
         npy_full_path = os.path.join(self._display_folder, npy_filename)
         
         try:
+            plt.title(title, fontsize=title_font_size, pad=20)
+            plt.tight_layout()
+            
             plt.savefig(full_path, format='png', dpi=dpi, bbox_inches='tight')
             print(f"Plot saved as: {full_path} (DPI: {dpi})")
             
@@ -1095,7 +1095,14 @@ class N3il:
             np.save(npy_full_path, state)
             print(f"State saved as: {npy_full_path}")
         except Exception as e:
-            print(f"Error saving plot or state: {e}")
+            print(f"Error saving plot or state (e.g. font issues): {e}")
+            try:
+                # Attempt to save state even if plotting failed
+                if not os.path.exists(npy_full_path):
+                    np.save(npy_full_path, state)
+                    print(f"State saved as: {npy_full_path} (saved after plotting error)")
+            except:
+                pass
         finally:
             plt.close()  # Close the figure to free memory
 
