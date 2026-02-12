@@ -8,8 +8,7 @@ mkdir -p logs
 # i = 3 ~ 12
 echo "=== Starting Batch 1 ==="
 actions=('None' 'rotation_180' 'vertical_flip' 'diagonal_flip' 'rotation_90_then_rotation_180' 'vertical_flip_then_horizontal_flip' 'diagonal_flip_then_anti_diagonal_flip' 'vertical_flip_then_horizontal_flip_then_diagonal_flip')
-env="# Environment: GeometricDominating
-"
+env="GeometricDominating"
 
 for sa in "${actions[@]}"; do
   for i in {3..12}; do

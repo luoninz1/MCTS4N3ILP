@@ -72,7 +72,7 @@ if __name__ == "__main__":
                 'environment': args_cli.environment,  # Specify the environment
                 'algorithm': args_cli.algorithm,
                 'save_optimal_terminal_state': True,  # Save optimal terminal states found
-                'save_all_optimal_terminal_states': True if n < 21 else False,  # Save all optimal terminal states found for n < 21 (to avoid memory issues for larger n)
+                'save_all_optimal_terminal_states': True if n < 11 else False,  # Save all optimal terminal states found for n < 21 (to avoid memory issues for larger n)
                 'symmetric_action': args_cli.symmetric_action,  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': True,  # Enable node compression
