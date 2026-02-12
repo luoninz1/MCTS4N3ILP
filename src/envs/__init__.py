@@ -11,3 +11,4 @@ from .n3il_SVAS_wo_inc import N3il_with_SVAS_wo_inc
 from .no_isosceles import No_isosceles
 from .n4il import N4il
 from .No_4_on_circle import No_4_on_circle
+from .GeometricDominating import GeometricDominating
