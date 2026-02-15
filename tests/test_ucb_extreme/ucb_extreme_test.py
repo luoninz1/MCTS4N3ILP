@@ -4,25 +4,32 @@ import argparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 from src.algos import evaluate, MCTS
 from src.rewards.n3il_rewards import set_reward_strategy
+from src.utils.exploration_decay import set_exploration_decay_strategy
 
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run MCTS tests for a range of n values.")
-    parser.add_argument("--start", type=int, default=20, help="Starting value of n (inclusive)")
-    parser.add_argument("--end", type=int, default=21, help="Ending value of n (exclusive)")
+    parser.add_argument("--start", type=int, default=30, help="Starting value of n (inclusive)")
+    parser.add_argument("--end", type=int, default=31, help="Ending value of n (exclusive)")
     parser.add_argument("--step", type=int, default=1, help="Step size for n values")
     parser.add_argument("--repeat", type=int, default=1, help="Number of runs for each n value")
     parser.add_argument("--symmetric_action", type=str, default="None", help="Symmetric action mode (e.g., 'vertical_flip_then_horizontal_flip_then_diagonal_flip')")
     parser.add_argument("--environment", type=str, default="N3il_with_symmetry_and_symmetric_actions", help="Environment name")
     parser.add_argument("--algorithm", type=str, default="MCTS_Tree_Reuse", help="Algorithm name")
+    parser.add_argument("--bandit_policy", type=str, default="ucb_extreme", help="Bandit policy to use (ucb1 or ucb_extreme)")
     parser.add_argument("--reward", type=str, default="exp_growth", 
                         choices=["default", "exp_reverse", "exp_growth", "linear", "gaussian", "optimal_3x3"],
                         help="Reward function strategy to use")
+    parser.add_argument("--exploration_decay", type=str, default="linear_decay",
+                        choices=["no_decay", "sqrt_decay", "linear_decay"],
+                        help="Exploration decay strategy to use")
     parser.add_argument("--output_dir", type=str, default=None, help="Directory to save results (tables and figures). If None, uses current directory.")
     
     args_cli = parser.parse_args()
     print(f"Configuration: Setting Reward Strategy to '{args_cli.reward}'")
     set_reward_strategy(args_cli.reward)
+    print(f"Configuration: Setting Exploration Decay Strategy to '{args_cli.exploration_decay}'")
+    set_exploration_decay_strategy(args_cli.exploration_decay)
 
     # Determine output directories
     if args_cli.output_dir:
@@ -72,13 +79,15 @@ if __name__ == "__main__":
                 'environment': args_cli.environment,  # Specify the environment
                 'algorithm': args_cli.algorithm,
                 'save_optimal_terminal_state': True,  # Save optimal terminal states found
-                'save_all_optimal_terminal_states': True if n < 31 else False,  # Save all optimal terminal states found for n < 31 (to avoid memory issues for larger n)
+                'save_all_optimal_terminal_states': True if n < 11 else False,  # Save all optimal terminal states found for n < 31 (to avoid memory issues for larger n)
                 'symmetric_action': args_cli.symmetric_action,  # Specify symmetric action mode
                 # horizontal_flip, vertical_flip, diagonal_flip, anti_diagonal_flip, rotation_90/180/270
                 'node_compression': True,  # Enable node compression
                 'max_level_to_use_symmetry': 2*n if args_cli.environment == 'N3il_with_symmetry_and_symmetric_actions' else 1,  # Use symmetry for first 2 levels (helps find compact solutions)
                 'n': n,
-                'bandit_policy': 'ucb_extreme',  # Use UCB-Extreme policy for testing
+                'bandit_policy': args_cli.bandit_policy,  # Use UCB-Extreme policy for testing
+                'exploration_decay': args_cli.exploration_decay, # for recording in tables (actual decay is handled internally in MCTS)
+                'reward': args_cli.reward, # for recording in tables (actual reward strategy is handled internally in MCTS)
                 'C': 1.41,  # sqrt(2)
                 'num_searches': 10*(n**2),  # Reduced for testing tree visualization
                 'num_workers': 1,      # >1 ⇒ parallel
