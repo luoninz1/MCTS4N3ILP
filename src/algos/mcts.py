@@ -36,12 +36,15 @@ from src.rewards.n3il_rewards import get_value_nb
 
 @njit(cache=True, nogil=True)
 def exploration_decay_nb(x):  # Monotone-down from (0,1) to (1,0)
+    # No decay (always explore)
+    return 1 #
+
     # Cosine decay
     # return (np.cos(np.pi * x)+1)/2  # 100% exploration at start, 0% at end
     
     # Linear
     # return 1 - 0.7 * x   # Found optimal 4-point solution: 86/100 times (86.0%)
-    # return 1 - x # 85/100 times (85.0%)
+    return 1 - x # 85/100 times (85.0%)
 
     # Square root (gentle early decay)
     # return 1 - 0.9 * np.sqrt(x) # 91/100 times (91.0%)
@@ -392,9 +395,15 @@ class Node:
 
         self.children = []
         self.visit_count = 0
-        self.value_sum = 0
         self.lock = threading.Lock()
         self._vl = args.get('virtual_loss', 1.0)
+        
+        # Bandit policy: 'ucb1' (default) or 'ucb_extreme'
+        self._policy = args.get('bandit_policy', 'ucb1')
+        if self._policy == 'ucb_extreme':
+            self.q_max = -np.inf  # Track maximum observed value
+        else:
+            self.value_sum = 0    # Track sum of values (for average)
 
         if parent is None:
             self.level = np.sum(state)  # Level is the number of points placed
@@ -430,13 +439,17 @@ class Node:
 
     def apply_virtual_loss(self):
         with self.lock:
-            self.value_sum -= self._vl
+            if self._policy == 'ucb1':
+                self.value_sum -= self._vl
+            # For ucb_extreme: don't modify q_max, only visit_count affects exploration
             self.visit_count += 1
             self._ucb_dirty = True  # Mark UCB as outdated
 
     def revert_virtual_loss(self):
         with self.lock:
-            self.value_sum += self._vl
+            if self._policy == 'ucb1':
+                self.value_sum += self._vl
+            # For ucb_extreme: q_max was not modified, nothing to revert
             self._ucb_dirty = True  # Mark UCB as outdated
 
     def is_fully_expanded(self):
@@ -467,7 +480,12 @@ class Node:
             if not child._ucb_dirty and child._cached_ucb is not None:
                 return child._cached_ucb
 
-            q_value = child.value_sum / child.visit_count
+            # Calculate q_value based on bandit policy
+            if child._policy == 'ucb_extreme':
+                q_value = child.q_max  # Use maximum observed reward
+            else:
+                q_value = child.value_sum / child.visit_count  # Use average reward
+            
             exploration_value = exploration_factor * math.sqrt(log_N / child.visit_count)
             ucb = q_value + exploration_value
             # print("Exploit:", q_value)
@@ -498,7 +516,10 @@ class Node:
 
     def backpropagate(self, value):
         with self.lock:
-            self.value_sum += value
+            if self._policy == 'ucb_extreme':
+                self.q_max = max(self.q_max, value)  # Update maximum observed value
+            else:
+                self.value_sum += value  # Accumulate for average
             self._ucb_dirty = True  # Mark UCB as outdated
         self.visit_count += 1
         if self.parent is not None:
@@ -560,7 +581,7 @@ class Node_Compressed:
         'children','visit_count','value_sum','lock','_vl',
         'level','is_full','_cached_ucb','_ucb_dirty',
         # packed payloads
-        '_rows','_cols','_state_bits','_valid_bits','_action_bits'
+        '_rows','_cols','_state_bits','_valid_bits','_action_bits', '_policy','q_max'
     )
 
     def __init__(self, game, args, state, parent=None, action_taken=None):
@@ -571,9 +592,15 @@ class Node_Compressed:
 
         self.children = []
         self.visit_count = 0
-        self.value_sum = 0.0
         self.lock = threading.Lock()
         self._vl = args.get('virtual_loss', 1.0)
+        
+        # Bandit policy: 'ucb1' (default) or 'ucb_extreme'
+        self._policy = args.get('bandit_policy', 'ucb1')
+        if self._policy == 'ucb_extreme':
+            self.q_max = -np.inf  # Track maximum observed value
+        else:
+            self.value_sum = 0.0  # Track sum of values (for average)
 
         # grid shape
         self._rows = getattr(game, 'row_count', state.shape[0])
@@ -637,13 +664,17 @@ class Node_Compressed:
     # ---------- drop-in methods (logic aligned with original) ----------
     def apply_virtual_loss(self):
         with self.lock:
-            self.value_sum -= self._vl
+            if self._policy == 'ucb1':
+                self.value_sum -= self._vl
+            # For ucb_extreme: don't modify q_max, only visit_count affects exploration
             self.visit_count += 1
             self._ucb_dirty = True
 
     def revert_virtual_loss(self):
         with self.lock:
-            self.value_sum += self._vl
+            if self._policy == 'ucb1':
+                self.value_sum += self._vl
+            # For ucb_extreme: q_max was not modified, nothing to revert
             self._ucb_dirty = True
 
     def is_fully_expanded(self):
@@ -675,7 +706,12 @@ class Node_Compressed:
             if not child._ucb_dirty and child._cached_ucb is not None:
                 return child._cached_ucb
 
-            q_value = child.value_sum / max(1, child.visit_count)
+            # Calculate q_value based on bandit policy
+            if child._policy == 'ucb_extreme':
+                q_value = child.q_max  # Use maximum observed reward
+            else:
+                q_value = child.value_sum / max(1, child.visit_count)  # Use average reward
+            
             exploration_value = exploration_factor * math.sqrt(max(1e-12, log_N) / max(1, child.visit_count))
             ucb = q_value + exploration_value
             child._cached_ucb = ucb
@@ -731,7 +767,10 @@ class Node_Compressed:
 
     def backpropagate(self, value):
         with self.lock:
-            self.value_sum += value
+            if self._policy == 'ucb_extreme':
+                self.q_max = max(self.q_max, value)  # Update maximum observed value
+            else:
+                self.value_sum += value  # Accumulate for average
             self._ucb_dirty = True
         self.visit_count += 1
         if self.parent is not None:
@@ -831,7 +870,21 @@ class MCTS:
         """
         Generate a label for a node showing its statistics.
         """
-        avg_value = node.value_sum / node.visit_count if node.visit_count > 0 else 0
+        # Display different stats based on bandit policy
+        policy = getattr(node, '_policy', 'ucb1')
+        
+        if policy == 'ucb_extreme':
+            # For UCB-Extreme: show q_max instead of average
+            q_value = getattr(node, 'q_max', -np.inf)
+            label = f"Visits: {node.visit_count}\n"
+            label += f"Q_max: {q_value:.3f}\n"
+        else:
+            # For UCB1: show value_sum and average
+            value_sum = getattr(node, 'value_sum', 0.0)
+            avg_value = value_sum / node.visit_count if node.visit_count > 0 else 0
+            label = f"Visits: {node.visit_count}\n"
+            label += f"Value Sum: {value_sum:.3f}\n"
+            label += f"Avg Value: {avg_value:.3f}\n"
         
         # Calculate UCB if this node has a parent
         ucb = 0
@@ -841,9 +894,6 @@ class MCTS:
             except:
                 ucb = 0
         
-        label = f"Visits: {node.visit_count}\n"
-        label += f"Value Sum: {node.value_sum:.3f}\n"
-        label += f"Avg Value: {avg_value:.3f}\n"
         label += f"UCB: {ucb:.3f}"
         
         return label
