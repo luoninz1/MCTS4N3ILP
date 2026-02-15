@@ -1,1 +1,2 @@
 from .symmetry import get_d4_orbit
+from .exploration_decay import set_exploration_decay_strategy, exploration_decay_nb
